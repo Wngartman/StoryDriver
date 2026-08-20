@@ -1,0 +1,2219 @@
+{
+  "172": {
+    "inputs": {
+      "rgthree_comparer": {
+        "images": [
+          {
+            "name": "A",
+            "selected": true,
+            "url": "/api/view?filename=rgthree.compare._temp_mipaa_00001_.png&type=temp&subfolder=&rand=0.175949145624528"
+          },
+          {
+            "name": "B",
+            "selected": true,
+            "url": "/api/view?filename=rgthree.compare._temp_mipaa_00002_.png&type=temp&subfolder=&rand=0.1532912323204686"
+          }
+        ]
+      },
+      "image_a": [
+        "2021",
+        0
+      ],
+      "image_b": [
+        "300",
+        0
+      ]
+    },
+    "class_type": "Image Comparer (rgthree)",
+    "_meta": {
+      "title": "Image Comparer (rgthree)"
+    }
+  },
+  "298": {
+    "inputs": {
+      "samples": [
+        "1785",
+        0
+      ],
+      "vae": [
+        "1391",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "299": {
+    "inputs": {
+      "anything": [
+        "298",
+        0
+      ]
+    },
+    "class_type": "easy clearCacheAll",
+    "_meta": {
+      "title": "Clear Cache All"
+    }
+  },
+  "300": {
+    "inputs": {
+      "anything": [
+        "299",
+        0
+      ]
+    },
+    "class_type": "easy clearCacheAll",
+    "_meta": {
+      "title": "Clear Cache All"
+    }
+  },
+  "303": {
+    "inputs": {
+      "images": [
+        "298",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "1069": {
+    "inputs": {
+      "any_01": [
+        "300",
+        0
+      ]
+    },
+    "class_type": "Any Switch (rgthree)",
+    "_meta": {
+      "title": "Any Switch (rgthree)"
+    }
+  },
+  "1280": {
+    "inputs": {
+      "model_name": "4x_NMKD-Siax_200k.pth"
+    },
+    "class_type": "UpscaleModelLoader",
+    "_meta": {
+      "title": "Load Upscale Model"
+    }
+  },
+  "1281": {
+    "inputs": {
+      "anything": [
+        "1286",
+        0
+      ]
+    },
+    "class_type": "easy clearCacheAll",
+    "_meta": {
+      "title": "Clear Cache All"
+    }
+  },
+  "1283": {
+    "inputs": {
+      "image": [
+        "1069",
+        0
+      ]
+    },
+    "class_type": "Get resolution [Crystools]",
+    "_meta": {
+      "title": "\ud83e\ude9b Get resolution"
+    }
+  },
+  "1285": {
+    "inputs": {
+      "upscale_by": [
+        "1306",
+        0
+      ],
+      "seed": [
+        "1307",
+        0
+      ],
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": [
+        "1355",
+        0
+      ],
+      "scheduler": [
+        "1356",
+        0
+      ],
+      "denoise": 0.15,
+      "mode_type": "Chess",
+      "tile_width": [
+        "1853",
+        1
+      ],
+      "tile_height": [
+        "1852",
+        1
+      ],
+      "mask_blur": 8,
+      "tile_padding": 32,
+      "seam_fix_mode": "None",
+      "seam_fix_denoise": 1.0,
+      "seam_fix_width": 64,
+      "seam_fix_mask_blur": 8,
+      "seam_fix_padding": 16,
+      "force_uniform_tiles": true,
+      "tiled_decode": false,
+      "batch_size": 1,
+      "image": [
+        "1069",
+        0
+      ],
+      "model": [
+        "1436",
+        0
+      ],
+      "positive": [
+        "1315",
+        0
+      ],
+      "negative": [
+        "1314",
+        0
+      ],
+      "vae": [
+        "1391",
+        0
+      ],
+      "upscale_model": [
+        "1280",
+        0
+      ]
+    },
+    "class_type": "UltimateSDUpscale",
+    "_meta": {
+      "title": "Ultimate SD Upscale"
+    }
+  },
+  "1286": {
+    "inputs": {
+      "anything": [
+        "1285",
+        0
+      ]
+    },
+    "class_type": "easy clearCacheAll",
+    "_meta": {
+      "title": "Clear Cache All"
+    }
+  },
+  "1288": {
+    "inputs": {
+      "Xi": 1,
+      "Xf": 1.0,
+      "isfloatX": 1
+    },
+    "class_type": "mxSlider",
+    "_meta": {
+      "title": "image size / x = tile size(s)"
+    }
+  },
+  "1291": {
+    "inputs": {
+      "stop_at_clip_layer": -2,
+      "clip": [
+        "1331",
+        0
+      ]
+    },
+    "class_type": "CLIPSetLastLayer",
+    "_meta": {
+      "title": "CLIP Set Last Layer"
+    }
+  },
+  "1292": {
+    "inputs": {
+      "shift": 4.0,
+      "model": [
+        "1293",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "_meta": {
+      "title": "ModelSamplingAuraFlow"
+    }
+  },
+  "1293": {
+    "inputs": {
+      "sage_attention": "disabled",
+      "allow_compile": false,
+      "model": [
+        "1330",
+        0
+      ]
+    },
+    "class_type": "PathchSageAttentionKJ",
+    "_meta": {
+      "title": "Sage attn: (Don't use with Base)"
+    }
+  },
+  "1299": {
+    "inputs": {
+      "vae_name": "ae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "1301": {
+    "inputs": {
+      "name": "Z-Image-Turbo-Fun-Controlnet-Union-2.1.safetensors"
+    },
+    "class_type": "ModelPatchLoader",
+    "_meta": {
+      "title": "ModelPatchLoader (Turbo)"
+    }
+  },
+  "1302": {
+    "inputs": {
+      "text_0": "1 nude chubby women running on the beach,",
+      "text": [
+        "1303",
+        0
+      ]
+    },
+    "class_type": "ShowText|pysssss",
+    "_meta": {
+      "title": "Final Prompt"
+    }
+  },
+  "1303": {
+    "inputs": {
+      "delimiter": ",",
+      "string1": [
+        "1342",
+        0
+      ]
+    },
+    "class_type": "JoinStrings",
+    "_meta": {
+      "title": "Join Strings"
+    }
+  },
+  "1305": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "aspect_ratio": "Instagram Portrait - 1080x1350",
+      "swap_dimensions": "Off",
+      "upscale_factor": 1.5,
+      "prescale_factor": 1,
+      "batch_size": 1
+    },
+    "class_type": "CR Aspect Ratio Social Media",
+    "_meta": {
+      "title": "Aspect Ratio Social Media"
+    }
+  },
+  "1306": {
+    "inputs": {
+      "Xi": 1,
+      "Xf": 1.0,
+      "isfloatX": 1
+    },
+    "class_type": "mxSlider",
+    "_meta": {
+      "title": "Prescaler"
+    }
+  },
+  "1307": {
+    "inputs": {
+      "seed": 108113859213979
+    },
+    "class_type": "Seed (rgthree)",
+    "_meta": {
+      "title": "Seed (rgthree)"
+    }
+  },
+  "1313": {
+    "inputs": {
+      "Text": "Lonecats Z-Image NSFW ver 8"
+    },
+    "class_type": "DF_Text",
+    "_meta": {
+      "title": "Filename Prefix"
+    }
+  },
+  "1314": {
+    "inputs": {
+      "text": [
+        "1317",
+        0
+      ],
+      "clip": [
+        "1436",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "1315": {
+    "inputs": {
+      "text": [
+        "1302",
+        0
+      ],
+      "clip": [
+        "1436",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "1316": {
+    "inputs": {
+      "anything12": [
+        "1391",
+        0
+      ],
+      "anything18": [
+        "1800",
+        0
+      ]
+    },
+    "class_type": "Anything Everywhere",
+    "_meta": {
+      "title": "Anything Everywhere"
+    }
+  },
+  "1317": {
+    "inputs": {
+      "negative": "bad anatomy, bad hands, watermark, ugly, distorted, censored, lowres, pixelated, distorted, jpeg artifacts, signature, (watermark), overexposed, underexposed, missing fingers, extra fingers, missing limbs, extra limbs, bad eyes, cloned face"
+    },
+    "class_type": "easy negative",
+    "_meta": {
+      "title": "Negative (Not used for Turbo)"
+    }
+  },
+  "1323": {
+    "inputs": {
+      "unet_name": "z-image-turbo-fp8-aio.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "1325": {
+    "inputs": {
+      "clip_name": "qwen_3_4b.safetensors",
+      "type": "lumina2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "1330": {
+    "inputs": {
+      "any_01": [
+        "1323",
+        0
+      ]
+    },
+    "class_type": "Any Switch (rgthree)",
+    "_meta": {
+      "title": "Model switch"
+    }
+  },
+  "1331": {
+    "inputs": {
+      "any_01": [
+        "1325",
+        0
+      ]
+    },
+    "class_type": "Any Switch (rgthree)",
+    "_meta": {
+      "title": "Clip switch"
+    }
+  },
+  "1341": {
+    "inputs": {
+      "steps_total": 10,
+      "refiner_step": 10,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple"
+    },
+    "class_type": "KSampler Config (rgthree)",
+    "_meta": {
+      "title": "KSampler ZIT"
+    }
+  },
+  "1342": {
+    "inputs": {
+      "positive": "1 nude chubby women running on the beach"
+    },
+    "class_type": "easy positive",
+    "_meta": {
+      "title": "Positive"
+    }
+  },
+  "1351": {
+    "inputs": {
+      "any_02": [
+        "1341",
+        0
+      ]
+    },
+    "class_type": "Any Switch (rgthree)",
+    "_meta": {
+      "title": "Step switch"
+    }
+  },
+  "1353": {
+    "inputs": {
+      "any_02": [
+        "1341",
+        1
+      ]
+    },
+    "class_type": "Any Switch (rgthree)",
+    "_meta": {
+      "title": "Ref step switch"
+    }
+  },
+  "1354": {
+    "inputs": {
+      "any_02": [
+        "1341",
+        2
+      ]
+    },
+    "class_type": "Any Switch (rgthree)",
+    "_meta": {
+      "title": "CFG Switch"
+    }
+  },
+  "1355": {
+    "inputs": {
+      "any_02": [
+        "1341",
+        3
+      ]
+    },
+    "class_type": "Any Switch (rgthree)",
+    "_meta": {
+      "title": "Sampler Switch"
+    }
+  },
+  "1356": {
+    "inputs": {
+      "any_02": [
+        "1341",
+        4
+      ]
+    },
+    "class_type": "Any Switch (rgthree)",
+    "_meta": {
+      "title": "Scheduler Switch"
+    }
+  },
+  "1391": {
+    "inputs": {
+      "any_02": [
+        "1299",
+        0
+      ]
+    },
+    "class_type": "Any Switch (rgthree)",
+    "_meta": {
+      "title": "VAE Switch"
+    }
+  },
+  "1436": {
+    "inputs": {
+      "PowerLoraLoaderHeaderWidget": {
+        "type": "PowerLoraLoaderHeaderWidget"
+      },
+      "lora_1": {
+        "on": false,
+        "lora": "ZIT\\Your Loras\\Better_Passion ZIT.safetensors",
+        "strength": 0.62
+      },
+      "lora_2": {
+        "on": false,
+        "lora": "ZIT\\Your Loras\\Better Yuri.safetensors",
+        "strength": 0.48
+      },
+      "lora_3": {
+        "on": false,
+        "lora": "ZIT\\Styles\\anime_style_-_beauties_women_illustration_v1.safetensors",
+        "strength": 0.35
+      },
+      "lora_4": {
+        "on": false,
+        "lora": "ZIT\\Styles\\SomberFantasy_Zv1.safetensors",
+        "strength": 0.3
+      },
+      "lora_5": {
+        "on": false,
+        "lora": "ZIT\\Styles\\new_mecha_zit_V2.safetensors",
+        "strength": 0.48333740234375
+      },
+      "lora_6": {
+        "on": false,
+        "lora": "ZIT\\Styles\\MoriimeZ.safetensors",
+        "strength": 0.5
+      },
+      "lora_7": {
+        "on": false,
+        "lora": "ZIT\\Styles\\ZIT_TA86_Anime_Lab_Style2.safetensors",
+        "strength": 0.8
+      },
+      "lora_8": {
+        "on": false,
+        "lora": "ZIT\\Styles\\edge of reality.safetensors",
+        "strength": 0.73
+      },
+      "lora_9": {
+        "on": false,
+        "lora": "ZIT\\Styles\\ta86_yal_HYFpunk_V1.safetensors",
+        "strength": 0.75
+      },
+      "lora_10": {
+        "on": false,
+        "lora": "ZIT\\Styles\\project_art_02.safetensors",
+        "strength": 0.75
+      },
+      "lora_11": {
+        "on": false,
+        "lora": "ZIT\\Mystic-XXX-ZIT-V5.safetensors",
+        "strength": 0.55
+      },
+      "\u2795 Add Lora": "",
+      "model": [
+        "1292",
+        0
+      ],
+      "clip": [
+        "1291",
+        0
+      ]
+    },
+    "class_type": "Power Lora Loader (rgthree)",
+    "_meta": {
+      "title": "Power Lora Loader (rgthree)"
+    }
+  },
+  "1524": {
+    "inputs": {
+      "model": "MiaoshouAI/Florence-2-base-PromptGen-v2.0",
+      "precision": "bf16",
+      "convert_to_safetensors": "sdpa"
+    },
+    "class_type": "DownloadAndLoadFlorence2Model",
+    "_meta": {
+      "title": "DownloadAndLoadFlorence2Model"
+    }
+  },
+  "1562": {
+    "inputs": {
+      "any_01": [
+        "1577",
+        0
+      ]
+    },
+    "class_type": "Any Switch (rgthree)",
+    "_meta": {
+      "title": "Modelname Switch"
+    }
+  },
+  "1574": {
+    "inputs": {
+      "rgthree_comparer": {
+        "images": [
+          {
+            "name": "A",
+            "selected": true,
+            "url": "/api/view?filename=rgthree.compare._temp_spsrd_00001_.png&type=temp&subfolder=&rand=0.4651552603648057"
+          },
+          {
+            "name": "B",
+            "selected": true,
+            "url": "/api/view?filename=rgthree.compare._temp_spsrd_00002_.png&type=temp&subfolder=&rand=0.6012072025312822"
+          }
+        ]
+      },
+      "image_a": [
+        "1281",
+        0
+      ],
+      "image_b": [
+        "1069",
+        0
+      ]
+    },
+    "class_type": "Image Comparer (rgthree)",
+    "_meta": {
+      "title": "Image Comparer (rgthree)"
+    }
+  },
+  "1577": {
+    "inputs": {
+      "id": 0,
+      "widget_name": "unet_name",
+      "return_all": false,
+      "node_title": "",
+      "allowed_float_decimals": 2,
+      "any_input": [
+        "1323",
+        0
+      ]
+    },
+    "class_type": "WidgetToString",
+    "_meta": {
+      "title": "Widget To String"
+    }
+  },
+  "1595": {
+    "inputs": {
+      "modelname": "",
+      "positive": [
+        "1597",
+        0
+      ],
+      "negative": "unknown",
+      "width": 512,
+      "height": 512,
+      "seed_value": [
+        "1307",
+        0
+      ],
+      "steps": [
+        "1351",
+        0
+      ],
+      "cfg": [
+        "1354",
+        0
+      ],
+      "sampler_name": [
+        "1598",
+        0
+      ],
+      "scheduler_name": [
+        "1599",
+        0
+      ],
+      "denoise": 1.0,
+      "clip_skip": -2,
+      "additional_hashes": "A303101CD0",
+      "download_civitai_data": true,
+      "easy_remix": true,
+      "custom": ""
+    },
+    "class_type": "Image Saver Metadata",
+    "_meta": {
+      "title": "Image Metadata"
+    }
+  },
+  "1596": {
+    "inputs": {
+      "text": "",
+      "id": 0,
+      "node_title": "",
+      "only_enabled": true,
+      "debug": false,
+      "powerloraloader_model": [
+        "1436",
+        0
+      ]
+    },
+    "class_type": "vsLinx_AppendLorasFromNodeToString",
+    "_meta": {
+      "title": "Magic \ud83e\ude84"
+    }
+  },
+  "1597": {
+    "inputs": {
+      "delimiter": ", ",
+      "string1": [
+        "1794",
+        1
+      ],
+      "string2": [
+        "1596",
+        0
+      ]
+    },
+    "class_type": "JoinStrings",
+    "_meta": {
+      "title": "Join Strings"
+    }
+  },
+  "1598": {
+    "inputs": {
+      "text": "euler",
+      "anything": [
+        "1355",
+        0
+      ]
+    },
+    "class_type": "easy showAnything",
+    "_meta": {
+      "title": "\ud83e\udd14"
+    }
+  },
+  "1599": {
+    "inputs": {
+      "text": "simple",
+      "anything": [
+        "1356",
+        0
+      ]
+    },
+    "class_type": "easy showAnything",
+    "_meta": {
+      "title": "\ud83e\udd14"
+    }
+  },
+  "1681": {
+    "inputs": {
+      "value": true
+    },
+    "class_type": "PrimitiveBoolean",
+    "_meta": {
+      "title": "Embed workflow?"
+    }
+  },
+  "1684": {
+    "inputs": {
+      "Text": "Original"
+    },
+    "class_type": "DF_Text",
+    "_meta": {
+      "title": "Original name add"
+    }
+  },
+  "1687": {
+    "inputs": {
+      "Text": "Drafts\\"
+    },
+    "class_type": "DF_Text",
+    "_meta": {
+      "title": "Folder"
+    }
+  },
+  "1691": {
+    "inputs": {
+      "Text": "With Metadata"
+    },
+    "class_type": "DF_Text",
+    "_meta": {
+      "title": "Metadata"
+    }
+  },
+  "1693": {
+    "inputs": {
+      "inputcount": 3,
+      "delimiter": " ",
+      "return_list": false,
+      "Update inputs": null,
+      "string_1": [
+        "1687",
+        0
+      ],
+      "string_2": [
+        "1313",
+        0
+      ],
+      "string_3": [
+        "1684",
+        0
+      ]
+    },
+    "class_type": "JoinStringMulti",
+    "_meta": {
+      "title": "Join String Multi"
+    }
+  },
+  "1694": {
+    "inputs": {
+      "inputcount": 3,
+      "delimiter": " ",
+      "return_list": false,
+      "Update inputs": null,
+      "string_1": [
+        "1313",
+        0
+      ],
+      "string_2": [
+        "1691",
+        0
+      ],
+      "string_3": [
+        "1695",
+        0
+      ]
+    },
+    "class_type": "JoinStringMulti",
+    "_meta": {
+      "title": "Join String Multi"
+    }
+  },
+  "1695": {
+    "inputs": {
+      "Text": "%time"
+    },
+    "class_type": "DF_Text",
+    "_meta": {
+      "title": "Timestamp"
+    }
+  },
+  "1696": {
+    "inputs": {
+      "filename_prefix": [
+        "1693",
+        0
+      ],
+      "images": [
+        "300",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "1697": {
+    "inputs": {
+      "Text": "MetaData"
+    },
+    "class_type": "DF_Text",
+    "_meta": {
+      "title": "MetaData folder"
+    }
+  },
+  "1700": {
+    "inputs": {
+      "any_01": [
+        "1703",
+        0
+      ],
+      "any_02": [
+        "1697",
+        0
+      ]
+    },
+    "class_type": "Any Switch (rgthree)",
+    "_meta": {
+      "title": "Any Switch (rgthree)"
+    }
+  },
+  "1701": {
+    "inputs": {
+      "Text": "Metadata"
+    },
+    "class_type": "DF_Text",
+    "_meta": {
+      "title": "Metadata"
+    }
+  },
+  "1703": {
+    "inputs": {
+      "delimiter": "\\",
+      "string1": [
+        "1701",
+        0
+      ],
+      "string2": [
+        "1706",
+        0
+      ]
+    },
+    "class_type": "JoinStrings",
+    "_meta": {
+      "title": "Join Strings"
+    }
+  },
+  "1704": {
+    "inputs": {
+      "filename": [
+        "1694",
+        0
+      ],
+      "path": [
+        "1700",
+        0
+      ],
+      "extension": "png",
+      "lossless_webp": true,
+      "quality_jpeg_or_webp": 100,
+      "optimize_png": false,
+      "embed_workflow": [
+        "1681",
+        0
+      ],
+      "save_workflow_as_json": false,
+      "counter": 1,
+      "time_format": "%Y-%m-%d-%H%M%S",
+      "show_preview": true,
+      "images": [
+        "2021",
+        0
+      ],
+      "metadata": [
+        "1595",
+        0
+      ]
+    },
+    "class_type": "Image Saver Simple",
+    "_meta": {
+      "title": "Image Saver Simple"
+    }
+  },
+  "1705": {
+    "inputs": {
+      "format": "%Y-%m-%d"
+    },
+    "class_type": "JWDatetimeString",
+    "_meta": {
+      "title": "+ Date to meta \ud83d\udcc2"
+    }
+  },
+  "1706": {
+    "inputs": {
+      "delimiter": " ",
+      "string1": [
+        "1313",
+        0
+      ],
+      "string2": [
+        "1705",
+        0
+      ]
+    },
+    "class_type": "JoinStrings",
+    "_meta": {
+      "title": "Date join"
+    }
+  },
+  "1748": {
+    "inputs": {
+      "clip_name": "qwen_3_8b.safetensors",
+      "type": "stable_diffusion",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "1752": {
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "1755": {
+    "inputs": {
+      "Xi": 10,
+      "Xf": 10,
+      "isfloatX": 0
+    },
+    "class_type": "mxSlider",
+    "_meta": {
+      "title": "Steps"
+    }
+  },
+  "1756": {
+    "inputs": {
+      "Xi": 1,
+      "Xf": 1,
+      "isfloatX": 1
+    },
+    "class_type": "mxSlider",
+    "_meta": {
+      "title": "CFG"
+    }
+  },
+  "1765": {
+    "inputs": {
+      "sampler_name": "multistep/res_2m"
+    },
+    "class_type": "ClownSamplerSelector_Beta",
+    "_meta": {
+      "title": "ClownSamplerSelector"
+    }
+  },
+  "1770": {
+    "inputs": {
+      "Xi": 0,
+      "Xf": 0.75,
+      "isfloatX": 1
+    },
+    "class_type": "mxSlider",
+    "_meta": {
+      "title": "Rescale (VRAM cheater)"
+    }
+  },
+  "1771": {
+    "inputs": {
+      "PowerLoraLoaderHeaderWidget": {
+        "type": "PowerLoraLoaderHeaderWidget"
+      },
+      "lora_1": {
+        "on": false,
+        "lora": "Flux 2\\Klein\\f2k_9B_lcs_consist_20260415.safetensors",
+        "strength": 1
+      },
+      "\u2795 Add Lora": "",
+      "model": [
+        "1784",
+        0
+      ],
+      "clip": [
+        "1748",
+        0
+      ]
+    },
+    "class_type": "Power Lora Loader (rgthree)",
+    "_meta": {
+      "title": "Power Lora Loader (rgthree)"
+    }
+  },
+  "1776": {
+    "inputs": {
+      "image": [
+        "1910",
+        0
+      ]
+    },
+    "class_type": "Get resolution [Crystools]",
+    "_meta": {
+      "title": "\ud83e\ude9b Get resolution"
+    }
+  },
+  "1778": {
+    "inputs": {
+      "any_02": [
+        "1910",
+        0
+      ]
+    },
+    "class_type": "Any Switch (rgthree)",
+    "_meta": {
+      "title": "IMG pass \\switch"
+    }
+  },
+  "1780": {
+    "inputs": {
+      "noise_seed": [
+        "1307",
+        0
+      ]
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "1784": {
+    "inputs": {
+      "unet_name": "flux-2-klein-9b-Q8_0.gguf"
+    },
+    "class_type": "UnetLoaderGGUF",
+    "_meta": {
+      "title": "Unet Loader (GGUF)"
+    }
+  },
+  "1785": {
+    "inputs": {
+      "add_noise": "disable",
+      "noise_seed": [
+        "1307",
+        0
+      ],
+      "steps": [
+        "1789",
+        0
+      ],
+      "cfg": 1.0,
+      "sampler_name": [
+        "1355",
+        0
+      ],
+      "scheduler": [
+        "1356",
+        0
+      ],
+      "start_at_step": [
+        "1351",
+        0
+      ],
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable",
+      "model": [
+        "1436",
+        0
+      ],
+      "positive": [
+        "1315",
+        0
+      ],
+      "negative": [
+        "1314",
+        0
+      ],
+      "latent_image": [
+        "1786",
+        0
+      ]
+    },
+    "class_type": "KSamplerAdvanced",
+    "_meta": {
+      "title": "KSampler (2nd Pass))"
+    }
+  },
+  "1786": {
+    "inputs": {
+      "add_noise": "enable",
+      "noise_seed": [
+        "1307",
+        0
+      ],
+      "steps": [
+        "1789",
+        0
+      ],
+      "cfg": [
+        "1354",
+        0
+      ],
+      "sampler_name": [
+        "1355",
+        0
+      ],
+      "scheduler": [
+        "1356",
+        0
+      ],
+      "start_at_step": 0,
+      "end_at_step": [
+        "1351",
+        0
+      ],
+      "return_with_leftover_noise": "enable",
+      "model": [
+        "1436",
+        0
+      ],
+      "positive": [
+        "1315",
+        0
+      ],
+      "negative": [
+        "1314",
+        0
+      ],
+      "latent_image": [
+        "1800",
+        0
+      ]
+    },
+    "class_type": "KSamplerAdvanced",
+    "_meta": {
+      "title": "KSampler (1st Pass)"
+    }
+  },
+  "1788": {
+    "inputs": {
+      "Xi": 5,
+      "Xf": 5.0,
+      "isfloatX": 0
+    },
+    "class_type": "mxSlider",
+    "_meta": {
+      "title": "refiner steps (typ. 4)"
+    }
+  },
+  "1789": {
+    "inputs": {
+      "a": [
+        "1351",
+        0
+      ],
+      "b": [
+        "1788",
+        0
+      ],
+      "operation": "add"
+    },
+    "class_type": "easy mathInt",
+    "_meta": {
+      "title": "refiner math"
+    }
+  },
+  "1794": {
+    "inputs": {
+      "find1": "tiny",
+      "replace1": "average",
+      "find2": "",
+      "replace2": "",
+      "find3": "",
+      "replace3": "",
+      "text": [
+        "1795",
+        0
+      ]
+    },
+    "class_type": "CR Text Replace",
+    "_meta": {
+      "title": "Civitai tag \ud83d\udea9remove"
+    }
+  },
+  "1795": {
+    "inputs": {
+      "find1": "1girl",
+      "replace1": "woman",
+      "find2": "teens",
+      "replace2": "adult",
+      "find3": "young",
+      "replace3": "adult",
+      "text": [
+        "1302",
+        0
+      ]
+    },
+    "class_type": "CR Text Replace",
+    "_meta": {
+      "title": "Civitai tag \ud83d\udea9remove"
+    }
+  },
+  "1800": {
+    "inputs": {
+      "any_02": [
+        "1808",
+        0
+      ]
+    },
+    "class_type": "Any Switch (rgthree)",
+    "_meta": {
+      "title": "Latent Switch"
+    }
+  },
+  "1806": {
+    "inputs": {
+      "any_02": [
+        "1305",
+        1
+      ]
+    },
+    "class_type": "Any Switch (rgthree)",
+    "_meta": {
+      "title": "Height sw"
+    }
+  },
+  "1807": {
+    "inputs": {
+      "any_02": [
+        "1305",
+        0
+      ]
+    },
+    "class_type": "Any Switch (rgthree)",
+    "_meta": {
+      "title": "Width Sw"
+    }
+  },
+  "1808": {
+    "inputs": {
+      "width": [
+        "1807",
+        0
+      ],
+      "height": [
+        "1806",
+        0
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "1852": {
+    "inputs": {
+      "expression": "a/b",
+      "values.a": [
+        "1283",
+        1
+      ],
+      "values.b": [
+        "1288",
+        0
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "Math Expression"
+    }
+  },
+  "1853": {
+    "inputs": {
+      "expression": "a/b",
+      "values.a": [
+        "1283",
+        0
+      ],
+      "values.b": [
+        "1288",
+        0
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "Math Expression"
+    }
+  },
+  "1858": {
+    "inputs": {
+      "image": [
+        "1778",
+        0
+      ]
+    },
+    "class_type": "Get resolution [Crystools]",
+    "_meta": {
+      "title": "\ud83e\ude9b Get resolution"
+    }
+  },
+  "1859": {
+    "inputs": {
+      "int_a": [
+        "1858",
+        0
+      ],
+      "int_b": [
+        "1858",
+        1
+      ]
+    },
+    "class_type": "Largest Int (JPS)",
+    "_meta": {
+      "title": "Largest Int (JPS)"
+    }
+  },
+  "1860": {
+    "inputs": {
+      "expression": "a*b",
+      "values.a": [
+        "1305",
+        2
+      ],
+      "values.b": [
+        "1859",
+        1
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "Math Expression"
+    }
+  },
+  "1892": {
+    "inputs": {
+      "model_name": "bbox/nipples_yolov8s.pt"
+    },
+    "class_type": "UltralyticsDetectorProvider",
+    "_meta": {
+      "title": "UltralyticsDetectorProvider"
+    }
+  },
+  "1893": {
+    "inputs": {
+      "model_name": "bbox/vagina-v3.2.pt"
+    },
+    "class_type": "UltralyticsDetectorProvider",
+    "_meta": {
+      "title": "UltralyticsDetectorProvider"
+    }
+  },
+  "1896": {
+    "inputs": {
+      "guide_size": 512.0,
+      "guide_size_for": true,
+      "max_size": 1024.0,
+      "seed": [
+        "1307",
+        0
+      ],
+      "steps": 30,
+      "cfg": 5.0,
+      "sampler_name": [
+        "1903",
+        0
+      ],
+      "scheduler": [
+        "1943",
+        0
+      ],
+      "denoise": [
+        "1936",
+        0
+      ],
+      "feather": 5,
+      "noise_mask": true,
+      "force_inpaint": false,
+      "bbox_threshold": 0.5,
+      "bbox_dilation": 10,
+      "bbox_crop_factor": 3.0,
+      "sam_detection_hint": "center-1",
+      "sam_dilation": 0,
+      "sam_threshold": 0.93,
+      "sam_bbox_expansion": 0,
+      "sam_mask_hint_threshold": 0.7,
+      "sam_mask_hint_use_negative": "False",
+      "drop_size": 10,
+      "wildcard": "",
+      "cycle": 1,
+      "inpaint_model": false,
+      "noise_mask_feather": 20,
+      "tiled_encode": false,
+      "tiled_decode": false,
+      "image": [
+        "1906",
+        0
+      ],
+      "model": [
+        "1948",
+        0
+      ],
+      "clip": [
+        "1948",
+        1
+      ],
+      "vae": [
+        "1902",
+        2
+      ],
+      "positive": [
+        "1916",
+        0
+      ],
+      "negative": [
+        "1940",
+        0
+      ],
+      "bbox_detector": [
+        "1893",
+        0
+      ],
+      "sam_model_opt": [
+        "1900",
+        0
+      ],
+      "segm_detector_opt": [
+        "1893",
+        1
+      ]
+    },
+    "class_type": "FaceDetailer",
+    "_meta": {
+      "title": "Vagina"
+    }
+  },
+  "1897": {
+    "inputs": {
+      "guide_size": 512.0,
+      "guide_size_for": true,
+      "max_size": 1024.0,
+      "seed": [
+        "1307",
+        0
+      ],
+      "steps": 30,
+      "cfg": 5.0,
+      "sampler_name": [
+        "1903",
+        0
+      ],
+      "scheduler": [
+        "1943",
+        0
+      ],
+      "denoise": [
+        "1935",
+        0
+      ],
+      "feather": 5,
+      "noise_mask": true,
+      "force_inpaint": false,
+      "bbox_threshold": 0.5,
+      "bbox_dilation": 10,
+      "bbox_crop_factor": 3.0,
+      "sam_detection_hint": "center-1",
+      "sam_dilation": 0,
+      "sam_threshold": 0.93,
+      "sam_bbox_expansion": 0,
+      "sam_mask_hint_threshold": 0.7,
+      "sam_mask_hint_use_negative": "False",
+      "drop_size": 10,
+      "wildcard": "",
+      "cycle": 1,
+      "inpaint_model": false,
+      "noise_mask_feather": 20,
+      "tiled_encode": false,
+      "tiled_decode": false,
+      "image": [
+        "1281",
+        0
+      ],
+      "model": [
+        "1948",
+        0
+      ],
+      "clip": [
+        "1948",
+        1
+      ],
+      "vae": [
+        "1902",
+        2
+      ],
+      "positive": [
+        "1914",
+        0
+      ],
+      "negative": [
+        "1940",
+        0
+      ],
+      "bbox_detector": [
+        "1892",
+        0
+      ],
+      "sam_model_opt": [
+        "1900",
+        0
+      ],
+      "segm_detector_opt": [
+        "1892",
+        1
+      ]
+    },
+    "class_type": "FaceDetailer",
+    "_meta": {
+      "title": "Nipples"
+    }
+  },
+  "1900": {
+    "inputs": {
+      "model_name": "sam_vit_b_01ec64.pth",
+      "device_mode": "AUTO"
+    },
+    "class_type": "SAMLoader",
+    "_meta": {
+      "title": "SAMLoader (Impact)"
+    }
+  },
+  "1902": {
+    "inputs": {
+      "ckpt_name": "cyberrealisticPony_v170.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "1903": {
+    "inputs": {
+      "sampler_name": "dpmpp_2m"
+    },
+    "class_type": "Sampler Selector",
+    "_meta": {
+      "title": "Sampler Selector (legacy alias)"
+    }
+  },
+  "1906": {
+    "inputs": {
+      "anything": [
+        "1907",
+        0
+      ]
+    },
+    "class_type": "easy clearCacheAll",
+    "_meta": {
+      "title": "Clear Cache All"
+    }
+  },
+  "1907": {
+    "inputs": {
+      "anything": [
+        "1897",
+        0
+      ]
+    },
+    "class_type": "easy clearCacheAll",
+    "_meta": {
+      "title": "Clear Cache All"
+    }
+  },
+  "1908": {
+    "inputs": {
+      "anything": [
+        "1896",
+        0
+      ]
+    },
+    "class_type": "easy clearCacheAll",
+    "_meta": {
+      "title": "Clear Cache All"
+    }
+  },
+  "1910": {
+    "inputs": {
+      "anything": [
+        "1908",
+        0
+      ]
+    },
+    "class_type": "easy clearCacheAll",
+    "_meta": {
+      "title": "Clear Cache All"
+    }
+  },
+  "1912": {
+    "inputs": {
+      "scheduler": "karras"
+    },
+    "class_type": "Scheduler Selector",
+    "_meta": {
+      "title": "Scheduler Selector (legacy alias)"
+    }
+  },
+  "1914": {
+    "inputs": {
+      "conditioning_1": [
+        "1921",
+        0
+      ],
+      "conditioning_2": [
+        "1926",
+        0
+      ]
+    },
+    "class_type": "ConditioningCombine",
+    "_meta": {
+      "title": "Conditioning (Combine)"
+    }
+  },
+  "1916": {
+    "inputs": {
+      "conditioning_1": [
+        "1919",
+        0
+      ],
+      "conditioning_2": [
+        "1926",
+        0
+      ]
+    },
+    "class_type": "ConditioningCombine",
+    "_meta": {
+      "title": "Conditioning (Combine)"
+    }
+  },
+  "1919": {
+    "inputs": {
+      "text": [
+        "1929",
+        0
+      ],
+      "clip": [
+        "1948",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "1921": {
+    "inputs": {
+      "text": [
+        "1930",
+        0
+      ],
+      "clip": [
+        "1948",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "1926": {
+    "inputs": {
+      "text": [
+        "1302",
+        0
+      ],
+      "clip": [
+        "1948",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode"
+    }
+  },
+  "1929": {
+    "inputs": {
+      "positive": "Detailed vagina, detailed labia, trimmed pubic hair"
+    },
+    "class_type": "easy positive",
+    "_meta": {
+      "title": "Vajayjay prompt"
+    }
+  },
+  "1930": {
+    "inputs": {
+      "positive": "Detailed, puffy nipples"
+    },
+    "class_type": "easy positive",
+    "_meta": {
+      "title": "Nipple Prompt"
+    }
+  },
+  "1935": {
+    "inputs": {
+      "Xi": 0,
+      "Xf": 0.45,
+      "isfloatX": 1
+    },
+    "class_type": "mxSlider",
+    "_meta": {
+      "title": "Denoise"
+    }
+  },
+  "1936": {
+    "inputs": {
+      "Xi": 0,
+      "Xf": 0.45,
+      "isfloatX": 1
+    },
+    "class_type": "mxSlider",
+    "_meta": {
+      "title": "Denoise"
+    }
+  },
+  "1940": {
+    "inputs": {
+      "text": [
+        "1317",
+        0
+      ],
+      "clip": [
+        "1948",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode"
+    }
+  },
+  "1943": {
+    "inputs": {
+      "text": "karras",
+      "anything": [
+        "1912",
+        0
+      ]
+    },
+    "class_type": "easy showAnything",
+    "_meta": {
+      "title": "\ud83d\ude44"
+    }
+  },
+  "1944": {
+    "inputs": {
+      "images": [
+        "1897",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "1945": {
+    "inputs": {
+      "images": [
+        "1896",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "1948": {
+    "inputs": {
+      "PowerLoraLoaderHeaderWidget": {
+        "type": "PowerLoraLoaderHeaderWidget"
+      },
+      "lora_1": {
+        "on": true,
+        "lora": "Illustrious\\model adjust\\NIPPLES.safetensors",
+        "strength": 0.5
+      },
+      "\u2795 Add Lora": "",
+      "model": [
+        "1902",
+        0
+      ],
+      "clip": [
+        "1902",
+        1
+      ]
+    },
+    "class_type": "Power Lora Loader (rgthree)",
+    "_meta": {
+      "title": "Power Lora Loader (rgthree)"
+    }
+  },
+  "1959": {
+    "inputs": {
+      "text": "simple",
+      "anything": [
+        "1356",
+        0
+      ]
+    },
+    "class_type": "easy showAnything",
+    "_meta": {
+      "title": "\ud83e\udd14"
+    }
+  },
+  "1977": {
+    "inputs": {
+      "a": [
+        "1307",
+        0
+      ],
+      "b": 10,
+      "operation": "add"
+    },
+    "class_type": "easy mathInt",
+    "_meta": {
+      "title": "Seed Jump"
+    }
+  },
+  "1985": {
+    "inputs": {
+      "conditioning": [
+        "1315",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "ConditioningZeroOut"
+    }
+  },
+  "1997": {
+    "inputs": {
+      "model_name": "sam_vit_b_01ec64.pth",
+      "device_mode": "AUTO"
+    },
+    "class_type": "SAMLoader",
+    "_meta": {
+      "title": "SAMLoader (Impact)"
+    }
+  },
+  "2001": {
+    "inputs": {
+      "images": [
+        "2024",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "2004": {
+    "inputs": {
+      "images": [
+        "2024",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "2008": {
+    "inputs": {
+      "images": [
+        "2024",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "2017": {
+    "inputs": {
+      "mode": "always",
+      "volume": 1.0,
+      "file": "notify.mp3",
+      "any": [
+        "2021",
+        0
+      ]
+    },
+    "class_type": "PlaySound|pysssss",
+    "_meta": {
+      "title": "\ud83d\udd0aPlaySound"
+    }
+  },
+  "2020": {
+    "inputs": {
+      "image": [
+        "2021",
+        0
+      ]
+    },
+    "class_type": "Get resolution [Crystools]",
+    "_meta": {
+      "title": "Final \ud83d\uddbc\ufe0f\ud83d\udccf"
+    }
+  },
+  "2021": {
+    "inputs": {
+      "any_01": [
+        "2024",
+        0
+      ],
+      "any_02": [
+        "2024",
+        0
+      ]
+    },
+    "class_type": "Any Switch (rgthree)",
+    "_meta": {
+      "title": "crop bypass Switch"
+    }
+  },
+  "2024": {
+    "inputs": {
+      "any_01": [
+        "2027",
+        0
+      ],
+      "any_02": [
+        "2027",
+        0
+      ]
+    },
+    "class_type": "Any Switch (rgthree)",
+    "_meta": {
+      "title": "Optical Real switch"
+    }
+  },
+  "2027": {
+    "inputs": {
+      "hue": 0.0,
+      "saturation": 0.0,
+      "brightness": 0.0,
+      "contrast": 0.0,
+      "sharpness": 0.0,
+      "Hue": 0,
+      "Saturation": 0,
+      "Brightness": 0,
+      "Contrast": 0,
+      "Sharpness": 0,
+      "Reset": null,
+      "image": [
+        "2051",
+        0
+      ]
+    },
+    "class_type": "FL_ImageAdjuster",
+    "_meta": {
+      "title": "Image Adjust"
+    }
+  },
+  "2028": {
+    "inputs": {
+      "images": [
+        "2024",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "2039": {
+    "inputs": {
+      "images": [
+        "1778",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "2040": {
+    "inputs": {
+      "images": [
+        "1778",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "2041": {
+    "inputs": {
+      "images": [
+        "1778",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "2042": {
+    "inputs": {
+      "images": [
+        "1778",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "2043": {
+    "inputs": {
+      "images": [
+        "2049",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "2044": {
+    "inputs": {
+      "images": [
+        "2051",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "color match"
+    }
+  },
+  "2049": {
+    "inputs": {
+      "R": 0,
+      "G": 0,
+      "B": 0,
+      "image": [
+        "1778",
+        0
+      ]
+    },
+    "class_type": "LayerColor: RGB",
+    "_meta": {
+      "title": "Adjust RGB"
+    }
+  },
+  "2051": {
+    "inputs": {
+      "method": "hm-mvgd-hm",
+      "strength": 0.7,
+      "multithread": true,
+      "image_ref": [
+        "2056",
+        0
+      ],
+      "image_target": [
+        "2049",
+        0
+      ]
+    },
+    "class_type": "ColorMatch",
+    "_meta": {
+      "title": "Color match to Image"
+    }
+  },
+  "2054": {
+    "inputs": {},
+    "class_type": "Any Switch (rgthree)",
+    "_meta": {
+      "title": "color match switch"
+    }
+  },
+  "2056": {
+    "inputs": {
+      "any_01": [
+        "2054",
+        0
+      ],
+      "any_02": [
+        "2049",
+        0
+      ]
+    },
+    "class_type": "Any Switch (rgthree)",
+    "_meta": {
+      "title": "Color match bypass switch"
+    }
+  }
+}

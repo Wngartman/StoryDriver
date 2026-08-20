@@ -1,0 +1,12 @@
+{
+  "project": "ggml-org/llama.cpp",
+  "version": "b10507",
+  "commit": "95c409c13",
+  "platform": "windows-x64",
+  "backend": "vulkan",
+  "asset": "llama-b10507-bin-win-vulkan-x64.zip",
+  "source": "https://github.com/ggml-org/llama.cpp/releases/download/b10507/llama-b10507-bin-win-vulkan-x64.zip",
+  "sha256": "c6e5b1885a47eb6a5ec9a77f9eefbbdb7364b39ed953032bf9d051be4af716e6",
+  "license": "MIT",
+  "license_file": "llama.cpp/LICENSE"
+}

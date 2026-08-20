@@ -1,0 +1,12 @@
+<Application x:Class="StoryDriver.Desktop.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Application.Resources>
+    <Style TargetType="ToolTip">
+      <Setter Property="Background" Value="#17191E" />
+      <Setter Property="Foreground" Value="#F0EEE8" />
+      <Setter Property="BorderBrush" Value="#3A3D45" />
+      <Setter Property="Padding" Value="8,5" />
+    </Style>
+  </Application.Resources>
+</Application>

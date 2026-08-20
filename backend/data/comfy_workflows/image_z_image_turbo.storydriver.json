@@ -1,0 +1,16 @@
+{
+  "name": "image_z_image_turbo",
+  "workflow_file": "image_z_image_turbo.json",
+  "workflow_type": "z_image_turbo",
+  "resource_mode": "auto",
+  "expected_time_seconds_min": 10,
+  "expected_time_seconds_max": 30,
+  "positive_prompt_node_id": "57:27",
+  "positive_prompt_input": "text",
+  "negative_prompt_node_id": "",
+  "negative_prompt_input": "text",
+  "seed_node_id": "57:3",
+  "seed_input": "seed",
+  "output_node_id": "9",
+  "notes": "Detected automatically by StoryDriver.\npositive: node 57:27 / text (high confidence)\nseed: node 57:3 / seed (high confidence)\noutput: node 9 (high confidence)"
+}

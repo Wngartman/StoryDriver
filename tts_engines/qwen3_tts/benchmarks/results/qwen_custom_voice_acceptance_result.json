@@ -1,0 +1,50 @@
+{
+  "run_id": "b3babb53db",
+  "local_only": true,
+  "reference_source": "Kokoro synthetic female voice generated from public synthetic test text",
+  "started_at_epoch": 1784080329.7053914,
+  "checks": {
+    "prompt_ready": true,
+    "four_style_prompts": true,
+    "manage_update": true,
+    "effective_custom_voice": true,
+    "prosody_routing": true,
+    "automatic_direction": true,
+    "source_cues": true,
+    "fresh_outputs": true,
+    "distinct_cache_keys": true,
+    "cache_reuse": true,
+    "chunk_truth_persisted": true,
+    "voice_cleanup": true
+  },
+  "metrics": {
+    "reference_synthesis_seconds": 1.527,
+    "reference_normalize_and_prompt_seconds": 12.484,
+    "four_style_synthesis_seconds": 14.577,
+    "cached_chunk_latency_seconds": 0.059
+  },
+  "samples": [
+    "D:\\StoryDriver\\tts_engines\\samples\\qwen_customvoice_neutral.wav",
+    "D:\\StoryDriver\\tts_engines\\samples\\qwen_customvoice_soft.wav",
+    "D:\\StoryDriver\\tts_engines\\samples\\qwen_customvoice_whisper.wav",
+    "D:\\StoryDriver\\tts_engines\\samples\\qwen_customvoice_heightened.wav"
+  ],
+  "before": {
+    "kokoro_reachable": true,
+    "qwen_reachable": false
+  },
+  "persisted_styles": [
+    "normal",
+    "soft",
+    "whisper",
+    "heightened"
+  ],
+  "persisted_classifications": [
+    "normal",
+    "soft",
+    "whisper",
+    "heightened"
+  ],
+  "finished_at_epoch": 1784080360.3612998,
+  "passed": true
+}

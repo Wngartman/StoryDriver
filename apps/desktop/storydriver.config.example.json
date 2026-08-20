@@ -1,0 +1,10 @@
+{
+  "dataRoot": "D:\\StoryDriverData",
+  "backendPort": 8001,
+  "lanEnabled": false,
+  "minimizeToTray": false,
+  "KOKORO_BASE_URL": "http://127.0.0.1:8880",
+  "KOKORO_WORKING_DIR": "D:\\Kokoro-FastAPI",
+  "KOKORO_PYTHON_EXE": "D:\\Kokoro-FastAPI\\.venv_storydriver_py312\\Scripts\\python.exe",
+  "QWEN_TTS_BASE_URL": "http://127.0.0.1:8891"
+}

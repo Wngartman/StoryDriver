@@ -1,0 +1,21 @@
+{
+  "active_qwen_before_note": true,
+  "disposable_session_deleted": true,
+  "generation_seconds": 59.217,
+  "instance_config_exact": true,
+  "model_id_exact": true,
+  "passed": true,
+  "qwen_interrupted_response": {
+    "error": "ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host"
+  },
+  "qwen_reachable_after_writing": false,
+  "reasoning_exact": true,
+  "runtime_exact": true,
+  "scene_chars": 1491,
+  "scene_count": 1,
+  "scene_id": "1b6c7a2e-368f-4a11-a030-c83193fab851",
+  "scene_nonempty": true,
+  "status": "complete",
+  "stream_delta_events": 330,
+  "thinking_enabled": true
+}

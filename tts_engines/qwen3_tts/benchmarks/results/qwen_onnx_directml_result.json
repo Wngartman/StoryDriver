@@ -1,0 +1,29 @@
+{
+  "available_providers": [
+    "DmlExecutionProvider",
+    "CPUExecutionProvider"
+  ],
+  "backend": "onnxruntime_directml",
+  "complete_backend_scope": false,
+  "directml_nodes_confirmed": true,
+  "export_bytes": 62986857,
+  "export_seconds": 0.4824,
+  "max_absolute_error": 1e-06,
+  "median_layer_seconds": 0.006119,
+  "numerically_valid": true,
+  "onnxruntime_version": "1.24.4",
+  "probe_scope": "one real talker decoder layer with real checkpoint weights",
+  "profile_node_provider_counts": {
+    "DmlExecutionProvider": 6
+  },
+  "reason": "A static real decoder layer can be tested on DirectML, but the dominant full stage is a Python autoregressive GenerationMixin loop with nested sub-talker generation, sampling, mutable KV cache, past_hidden, and stopping state. This probe cannot replace or accelerate complete synthesis without a new stateful generation runtime.",
+  "session_load_seconds": 0.4948,
+  "session_providers": [
+    "DmlExecutionProvider",
+    "CPUExecutionProvider"
+  ],
+  "source_model_load_seconds": 0.9868,
+  "status": "unsupported_for_complete_qwen",
+  "tested_at_epoch": 1784038552.4969816,
+  "worst_layer_seconds": 0.006163
+}

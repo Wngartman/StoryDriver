@@ -1,0 +1,75 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+backend/.venv_*/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Project-local build tools and native outputs
+.tools/
+build/
+release/
+tools/packaging/.venv/
+apps/desktop/bin/
+apps/desktop/obj/
+runtimes/llama.cpp/
+
+# Environment
+.env
+backend/.env
+storydriver.config.json
+.codex/
+
+# StoryDriver runtime data
+backend/data/*.db
+backend/data/*.db-*
+backend/data/backups/*
+backend/data/character_refs/*
+backend/data/generated_images/*
+backend/data/generated_audio/*
+backend/data/logs/*
+backend/data/exports/*
+backend/data/temp/*
+backend/data/webview2/*
+backend/data/config/*
+backend/data/voices/*
+backend/data/ui_presets/custom/*
+backend/data/ui_presets/assets/*
+backend/data/ui_presets/custom_presets.json
+backend/data/assets/backgrounds/*
+!backend/data/backups/.gitkeep
+!backend/data/character_refs/.gitkeep
+!backend/data/generated_images/.gitkeep
+!backend/data/generated_audio/.gitkeep
+!backend/data/logs/.gitkeep
+!backend/data/exports/.gitkeep
+!backend/data/temp/.gitkeep
+!backend/data/assets/backgrounds/README.md
+
+# Isolated TTS experiments and generated listening audio
+tts_engines/envs/*
+tts_engines/cache/*
+tts_engines/benchmarks/*
+tts_engines/samples/*
+tts_engines/qwen3_tts/venv/
+tts_engines/qwen3_tts/source/
+tts_engines/qwen3_tts/models/
+tts_engines/qwen3_tts/samples/
+tts_engines/qwen3_tts/benchmarks/samples/*.wav
+tts_engines/qwen3_tts/logs/
+tts_engines/**/logs/
+tts_engines/qwen3_tts/**/__pycache__/
+!tts_engines/envs/.gitkeep
+!tts_engines/cache/.gitkeep
+!tts_engines/benchmarks/.gitkeep
+!tts_engines/samples/.gitkeep
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

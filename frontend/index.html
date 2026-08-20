@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="application-name" content="StoryDriver" />
+    <meta name="apple-mobile-web-app-title" content="StoryDriver" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="description" content="Local directed fiction workspace for writing, story state, and narration." />
+    <meta name="theme-color" content="#0b0c0f" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <title>StoryDriver</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      window.setTimeout(function () {
+        var root = document.getElementById("root");
+        if (!window.__STORYDRIVER_FRONTEND_BOOTED && root && !root.innerHTML.trim()) {
+          var host = window.location.hostname || "localhost";
+          var apiHost = host === "localhost" || host === "127.0.0.1" || host === "::1" ? "localhost" : host;
+          var apiBase = window.location.protocol + "//" + apiHost + ":8001";
+          root.innerHTML =
+            '<div style="min-height:100vh;background:#07080a;color:#f4efe7;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;display:grid;place-items:center;padding:24px;">' +
+            '<div style="width:min(680px,100%);border:1px solid rgba(148,163,184,.28);background:rgba(15,17,21,.94);box-shadow:0 24px 80px rgba(0,0,0,.42);border-radius:18px;padding:24px;">' +
+            '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">' +
+            '<span style="display:grid;place-items:center;width:40px;height:40px;border-radius:12px;border:1px solid rgba(241,182,109,.32);background:linear-gradient(180deg,rgba(241,182,109,.12),rgba(15,17,21,.82));box-shadow:0 12px 28px rgba(0,0,0,.28);overflow:hidden;">' +
+            '<img alt="" src="/brand/storydriver-brand-mark.png" style="width:32px;height:32px;object-fit:contain;display:block;" />' +
+            '</span>' +
+            '<div style="font-size:12px;text-transform:uppercase;letter-spacing:.16em;color:#93c5fd;">StoryDriver</div>' +
+            '</div>' +
+            '<h1 style="margin:0 0 10px;font-size:22px;line-height:1.2;">StoryDriver frontend loaded, but the app did not start.</h1>' +
+            '<p style="margin:0 0 14px;color:#cbd5e1;line-height:1.6;">The LAN page loaded, but the browser did not run the frontend module bundle. Refresh once, then test the backend health URL from this device.</p>' +
+            '<div style="display:grid;gap:8px;color:#d6d3d1;font-size:14px;line-height:1.5;">' +
+            '<div><strong>App URL:</strong> <code style="color:#bae6fd;word-break:break-all;">' + window.location.origin + '</code></div>' +
+            '<div><strong>Health check:</strong> <code style="color:#bae6fd;word-break:break-all;">' + apiBase + '/health</code></div>' +
+            '<div><strong>Next:</strong> allow Node.js/Vite and Python/FastAPI on private networks in Windows Firewall, confirm the phone is on the same Wi-Fi, then refresh StoryDriver.</div>' +
+            '</div></div></div>';
+        }
+      }, 4500);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "assessment": "A static neural subgraph can be export-tested, but complete synthesis includes a Python GenerationMixin loop, a nested code-predictor generation loop, sampling, mutable KV cache, mutable past_hidden, and stopping logic. Exporting one static forward does not constitute a working TTS backend.",
+  "backend": "onnxruntime-directml",
+  "dominant_stage": "autoregressive speech-token generation",
+  "evidence": {
+    "dynamic_past_key_values": true,
+    "mutable_generation_step": true,
+    "mutable_past_hidden": true,
+    "nested_subtalker_generate": true,
+    "python_autoregressive_return": true,
+    "uses_generation_mixin": true
+  },
+  "export_attempt_required": true,
+  "source": "D:\\StoryDriver\\tts_engines\\qwen3_tts\\venv\\Lib\\site-packages\\qwen_tts\\core\\models\\modeling_qwen3_tts.py",
+  "status": "structural_gate_passed_for_export_attempt",
+  "tested_at_epoch": 1784044795.5665605
+}

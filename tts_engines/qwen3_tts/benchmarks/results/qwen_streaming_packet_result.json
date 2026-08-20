@@ -1,0 +1,17 @@
+{
+  "first_packet_seconds": null,
+  "first_playable_seconds": 51.6559,
+  "is_iterator": false,
+  "official_vllm_omni_native_windows_supported": false,
+  "official_vllm_omni_packet_streaming_exists": true,
+  "official_vllm_omni_requirement": "Linux, Python 3.12, platform-specific CUDA/ROCm/XPU runtime",
+  "reason": "The installed official Python wrapper returns a complete (wavs, sample_rate) tuple only after autoregressive generation and full decode. Current vLLM-Omni has genuine Qwen PCM/SSE/WebSocket streaming, but its official runtime requires Linux and explicitly does not support native Windows.",
+  "return_type": "tuple",
+  "returned_after_seconds": 51.6559,
+  "returned_audio_duration_seconds": 15.28,
+  "source_declares_simulated_streaming_only": true,
+  "source_decodes_after_generate": true,
+  "source_waits_for_model_generate": true,
+  "status": "unsupported",
+  "true_packet_streaming": false
+}

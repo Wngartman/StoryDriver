@@ -1,0 +1,90 @@
+name: Windows release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      PYTHONUTF8: "1"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      LLAMA_SHA256: c6e5b1885a47eb6a5ec9a77f9eefbbdb7364b39ed953032bf9d051be4af716e6
+      NSIS_SHA256: 56581f90db321581c5381193d796fffcf2d24b2f8fed2160a6c6a3baa67f2c4f
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Prepare isolated build tools
+        shell: pwsh
+        run: |
+          python -m venv tools/packaging/.venv
+          tools/packaging/.venv/Scripts/python.exe -m pip install --upgrade pip
+          tools/packaging/.venv/Scripts/python.exe -m pip install -r backend/requirements.txt pyinstaller==6.22.2
+          npm ci --prefix frontend
+
+          New-Item -ItemType Directory -Force .tools/downloads, runtimes/llama.cpp | Out-Null
+          curl.exe -L --fail --retry 3 -o .tools/downloads/llama-b10507-bin-win-vulkan-x64.zip https://github.com/ggml-org/llama.cpp/releases/download/b10507/llama-b10507-bin-win-vulkan-x64.zip
+          if ((Get-FileHash .tools/downloads/llama-b10507-bin-win-vulkan-x64.zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:LLAMA_SHA256) { throw 'llama.cpp archive hash mismatch' }
+          Expand-Archive -LiteralPath .tools/downloads/llama-b10507-bin-win-vulkan-x64.zip -DestinationPath runtimes/llama.cpp -Force
+
+          curl.exe -L --fail --retry 3 -o .tools/downloads/nsis-3.12.zip https://downloads.sourceforge.net/project/nsis/NSIS%203/3.12/nsis-3.12.zip
+          if ((Get-FileHash .tools/downloads/nsis-3.12.zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:NSIS_SHA256) { throw 'NSIS archive hash mismatch' }
+          Expand-Archive -LiteralPath .tools/downloads/nsis-3.12.zip -DestinationPath .tools/nsis-3.12 -Force
+
+      - name: Non-model contracts
+        shell: pwsh
+        run: |
+          tools/packaging/.venv/Scripts/python.exe -m compileall backend/app apps/backend
+          tools/packaging/.venv/Scripts/python.exe scripts/prose_v3_static_test.py
+          tools/packaging/.venv/Scripts/python.exe scripts/scene_contract_blocking_static_test.py
+          tools/packaging/.venv/Scripts/python.exe scripts/story_foundation_static_test.py
+          tools/packaging/.venv/Scripts/python.exe scripts/deliberate_pipeline_static_test.py
+          tools/packaging/.venv/Scripts/python.exe scripts/tests/relationship_location_accuracy_test.py
+          tools/packaging/.venv/Scripts/python.exe scripts/tests/native_desktop_contract_test.py
+          tools/packaging/.venv/Scripts/python.exe scripts/tests/publish_tree_privacy_test.py
+          node scripts/tests/qwen_premium_plan_test.mjs
+          node scripts/tests/tts_buffered_seek_test.mjs
+          node scripts/tts_follow_sync_static_test.mjs
+
+      - name: Build installer and portable package
+        shell: pwsh
+        run: tools/packaging/.venv/Scripts/python.exe scripts/build_native_release.py
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: StoryDriver-Windows-x64
+          path: |
+            release/StoryDriver-Setup-x64.exe
+            release/StoryDriver-Portable-x64.zip
+            release/SHA256SUMS.txt
+            release/RELEASE_NOTES.md
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create $env:GITHUB_REF_NAME --title "StoryDriver $env:GITHUB_REF_NAME" --prerelease --notes-file release/RELEASE_NOTES.md release/StoryDriver-Setup-x64.exe release/StoryDriver-Portable-x64.zip release/SHA256SUMS.txt release/RELEASE_NOTES.md

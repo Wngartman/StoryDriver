@@ -1,0 +1,19 @@
+{
+  "backend": "pytorch_rocm_windows",
+  "driver_version": "32.0.31021.5001",
+  "official_gpu_support": "RX 7900 XTX / gfx1100",
+  "official_python_version": "3.12",
+  "official_pytorch_version": "2.9.1+rocm7.2.1",
+  "official_required_driver": "26.2.2",
+  "official_rocm_version": "7.2.1",
+  "radeon_software_product_version": "26.10.21.05;2361228;26.10.21.05;AMD-Radeon-Driver/drivers:805df9356d9521fb8c304e59fb7ab5fa3bedda1c",
+  "reason": "No system HIP SDK is installed, but AMD now publishes official D-only-installable Python wheels. The isolated wheel path must be tested without changing the display driver or global environment.",
+  "status": "portable_wheel_test_required",
+  "system_hip_sdk_present": false,
+  "tested_at_epoch": 1784044800.7125342,
+  "tools": {
+    "hipInfo.exe": [],
+    "hipcc.exe": [],
+    "rocminfo.exe": []
+  }
+}

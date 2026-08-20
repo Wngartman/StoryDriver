@@ -1,0 +1,49 @@
+<Window x:Class="StoryDriver.Desktop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        mc:Ignorable="d"
+        Title="StoryDriver"
+        Width="1440"
+        Height="930"
+        MinWidth="900"
+        MinHeight="620"
+        WindowStartupLocation="CenterScreen"
+        Background="#08090B"
+        Loaded="OnLoaded"
+        Closing="OnClosing"
+        KeyDown="OnKeyDown">
+  <Grid>
+    <wv2:WebView2 x:Name="StoryWebView" Visibility="Hidden" DefaultBackgroundColor="#08090B" />
+
+    <Grid x:Name="LoadingView" Background="#090A0C">
+      <Image x:Name="LoadingArtwork" Stretch="UniformToFill" Opacity="0.96" />
+      <Border Background="#52060709" />
+      <Grid Margin="56">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="*" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="1" MaxWidth="520" HorizontalAlignment="Left" Margin="0,0,0,34">
+          <TextBlock Text="StoryDriver" Foreground="#F1EDE5" FontFamily="Segoe UI Variable Display" FontWeight="SemiBold" FontSize="34" />
+          <TextBlock x:Name="LoadingStatus" Text="Preparing your writing space" Foreground="#C9C4BB" FontSize="15" Margin="1,10,0,13" />
+          <ProgressBar IsIndeterminate="True" Height="3" Width="280" HorizontalAlignment="Left" Foreground="#D7A64D" Background="#463D2C" BorderThickness="0" />
+          <TextBlock Text="Local and private" Foreground="#8F918E" FontSize="12" Margin="1,12,0,0" />
+        </StackPanel>
+      </Grid>
+    </Grid>
+
+    <Grid x:Name="ErrorView" Background="#0B0C0F" Visibility="Collapsed">
+      <StackPanel Width="560" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <TextBlock Text="StoryDriver could not finish starting" Foreground="#F3EEE5" FontFamily="Segoe UI Variable Display" FontSize="26" FontWeight="SemiBold" />
+        <TextBlock x:Name="ErrorMessage" Foreground="#C7C4BD" FontSize="14" LineHeight="22" TextWrapping="Wrap" Margin="0,12,0,20" />
+        <StackPanel Orientation="Horizontal">
+          <Button x:Name="RetryButton" Content="Try again" Click="OnRetry" Padding="18,9" Background="#C99A46" Foreground="#0B0B0B" BorderThickness="0" />
+          <Button Content="Open logs" Click="OnOpenLogs" Padding="18,9" Margin="10,0,0,0" Background="#24262C" Foreground="#E8E5DE" BorderBrush="#3C3F47" />
+        </StackPanel>
+      </StackPanel>
+    </Grid>
+  </Grid>
+</Window>
