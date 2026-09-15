@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-14. Canonical development root: D:\StoryDriver.
 
-1.0 is published at https://github.com/Wngartman/StoryDriver/releases/tag/v1.0.0 (sanitized source commit c27dbad).
+The 1.0 series is published at https://github.com/Wngartman/StoryDriver/releases/latest. Version 1.0.1 removes a redundant legacy service panel; 1.0.0 remains immutable.
 The final installer was tested for fresh installation, upgrade configuration preservation and data-preserving uninstall.
 Use the Windows GetFullPathNameW API in the installer: NSIS GetFullPathName can empty a nonexistent destination. Never remove the fail-closed path/payload checks.
 

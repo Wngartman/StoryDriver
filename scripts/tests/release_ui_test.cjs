@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '../..');
 const output = path.join(root, '.tools/release-test-data');
+fs.mkdirSync(output, { recursive: true });
 (async () => {
   const context = await chromium.launchPersistentContext(path.join(root, '.tools/release-browser'), {
     executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe',
@@ -35,6 +36,7 @@ const output = path.join(root, '.tools/release-test-data');
       await page.screenshot({ path: path.join(output, `desktop-${category.toLowerCase()}.png`) });
     }
     await page.getByRole('button', { name: 'Close settings', exact: true }).click();
+    await dialog.waitFor({ state: 'hidden' });
     await page.screenshot({ path: path.join(output, 'desktop-workspace.png') });
     await page.setViewportSize({ width: 430, height: 932 });
     await page.screenshot({ path: path.join(output, 'mobile-workspace.png') });
@@ -42,6 +44,7 @@ const output = path.join(root, '.tools/release-test-data');
     for (const category of ['Writing', 'Narration', 'Appearance', 'App']) {
       await dialog.getByRole('navigation', { name: 'Settings categories' }).getByRole('button', { name: category, exact: true }).click();
       await page.waitForTimeout(300);
+      if (category === 'App' && await dialog.getByText('Qwen3-TTS 0.6B', { exact: true }).count()) throw Error('Disabled legacy service leaked into App settings');
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
       if (overflow) throw new Error(`Mobile horizontal overflow: ${category}`);
       await page.screenshot({ path: path.join(output, `mobile-${category.toLowerCase()}.png`) });

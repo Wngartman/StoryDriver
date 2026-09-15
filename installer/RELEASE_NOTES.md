@@ -1,6 +1,8 @@
-# StoryDriver 1.0.0
+# StoryDriver 1.0.1
 
 A local directed-fiction studio for Windows 10/11 x64.
+
+1.0.1 removes a redundant legacy service panel that could describe disabled experimental narration as available on demand. Writing, narration and the data-preserving installer are unchanged from the verified 1.0 release.
 
 ## Start
 

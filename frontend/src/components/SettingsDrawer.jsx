@@ -7,7 +7,6 @@ import {
   Play,
   RefreshCw,
   Search,
-  Server,
   ShieldCheck,
   TriangleAlert,
   Type,
@@ -92,18 +91,6 @@ function SettingSection({ children, icon: Icon, title }) {
       </h3>
       {children}
     </section>
-  );
-}
-
-function ServiceRow({ endpoint, name, ok, paused = false, statusLabel = null }) {
-  return (
-    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-t border-line py-3 first:border-t-0 first:pt-0 last:pb-0">
-      <div className="min-w-0">
-        <div className="text-sm font-medium text-zinc-200">{name}</div>
-        <div className="safe-wrap mt-0.5 text-xs text-muted">{endpoint || "Not configured"}</div>
-      </div>
-      <Status ok={ok} paused={paused}>{statusLabel || (paused ? "Paused" : ok ? "Online" : "Offline")}</Status>
-    </div>
   );
 }
 
@@ -327,20 +314,6 @@ export default function SettingsDrawer({ onClose }) {
             <ModelSettingsModal embedded onRegisterSave={registerSave} />
           </div>
           {showCategory("app", "desktop version lan tray paths kokoro setup data") ? <DesktopSettings /> : null}
-          {showCategory("app", "services backend kokoro qwen lm studio status storage") ? <SettingSection icon={Server} title="Services">
-            <div className="rounded-lg border border-line bg-[#0d0e11] p-3">
-              <ServiceRow endpoint={API_BASE_URL} name="StoryDriver backend" ok={diagnostics?.backend === "ok"} />
-              <ServiceRow endpoint={diagnostics?.lm_studio?.base_url || "http://localhost:1234"} name="LM Studio" ok={Boolean(diagnostics?.lm_studio?.reachable)} />
-              <ServiceRow endpoint={ttsSettings.kokoro_base_url || "http://localhost:8880"} name="Kokoro" ok={Boolean(ttsStatus?.kokoro?.reachable ?? diagnostics?.kokoro?.reachable)} />
-              <ServiceRow
-                endpoint="Local on demand"
-                name="Qwen3-TTS 0.6B"
-                ok={Boolean(ttsStatus?.qwen_premium?.loaded)}
-                paused={!ttsStatus?.qwen_premium?.loaded}
-                statusLabel={ttsStatus?.qwen_premium?.loaded ? "Loaded" : "On demand"}
-              />
-            </div>
-          </SettingSection> : null}
 
           {showCategory("appearance", "theme reading font scale composer motion") ? <SettingSection icon={Palette} title="Appearance">
             <div className="grid gap-4">
