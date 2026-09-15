@@ -24,6 +24,7 @@ fs.mkdirSync(output, { recursive: true });
       const prompt = 'Synthetic system prompt persistence check. '.repeat(800);
       await dialog.locator('textarea:visible').first().fill(prompt);
       await page.getByRole('button', { name: 'Close settings', exact: true }).click();
+      await dialog.waitFor({ state: 'hidden' });
       const saved = await (await page.request.get('http://127.0.0.1:8001/settings/model')).json();
       if (saved.system_prompt !== prompt) throw Error('Immediate-close prompt save lost text');
     } finally {
