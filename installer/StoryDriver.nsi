@@ -165,10 +165,35 @@ FunctionEnd
 Section "StoryDriver" SEC_CORE
   SectionIn RO
   SetShellVarContext current
-  GetFullPathName $INSTDIR "$INSTDIR"
-  GetFullPathName $DataRoot "$DataRoot"
+  ${If} $INSTDIR == ""
+  ${OrIf} $DataRoot == ""
+    MessageBox MB_ICONSTOP "Application and data folders must not be empty."
+    SetErrorLevel 2
+    Quit
+  ${EndIf}
+  ; NSIS GetFullPathName can return empty for a directory that does not exist yet.
+  System::Call 'kernel32::GetFullPathNameW(w "$INSTDIR", i ${NSIS_MAX_STRLEN}, w .r1, p 0) i .r2'
+  ${If} $2 == 0
+  ${OrIf} $2 >= ${NSIS_MAX_STRLEN}
+  ${OrIf} $1 == ""
+    MessageBox MB_ICONSTOP "The application folder could not be resolved. Choose another folder."
+    SetErrorLevel 2
+    Quit
+  ${EndIf}
+  StrCpy $INSTDIR $1
+  System::Call 'kernel32::GetFullPathNameW(w "$DataRoot", i ${NSIS_MAX_STRLEN}, w .r1, p 0) i .r2'
+  ${If} $2 == 0
+  ${OrIf} $2 >= ${NSIS_MAX_STRLEN}
+  ${OrIf} $1 == ""
+    MessageBox MB_ICONSTOP "The data folder could not be resolved. Choose another folder."
+    SetErrorLevel 2
+    Quit
+  ${EndIf}
+  StrCpy $DataRoot $1
   ${GetRoot} "$INSTDIR" $0
-  ${If} $INSTDIR == "$0\"
+  ${If} $INSTDIR == ""
+  ${OrIf} $INSTDIR == "$0"
+  ${OrIf} $INSTDIR == "$0\"
   ${OrIf} $INSTDIR == "$WINDIR"
   ${OrIf} $INSTDIR == "$PROGRAMFILES"
   ${OrIf} $INSTDIR == "$LOCALAPPDATA"
@@ -178,7 +203,9 @@ Section "StoryDriver" SEC_CORE
     Abort
   ${EndIf}
   ${GetRoot} "$DataRoot" $0
-  ${If} $DataRoot == "$0\"
+  ${If} $DataRoot == ""
+  ${OrIf} $DataRoot == "$0"
+  ${OrIf} $DataRoot == "$0\"
   ${OrIf} $DataRoot == "$WINDIR"
   ${OrIf} $DataRoot == "$PROFILE"
     MessageBox MB_ICONSTOP "Choose a dedicated StoryDriver data folder, not a drive or Windows folder."
@@ -186,6 +213,15 @@ Section "StoryDriver" SEC_CORE
   ${EndIf}
   SetOutPath "$INSTDIR"
   File /r "${PAYLOAD_DIR}\*.*"
+  IfFileExists "$INSTDIR\StoryDriver.exe" 0 install_failed
+  IfFileExists "$INSTDIR\backend\StoryDriverBackend.exe" 0 install_failed
+  IfFileExists "$INSTDIR\runtimes\kokoro\StoryDriverNarration.exe" 0 install_failed
+  Goto install_verified
+  install_failed:
+  MessageBox MB_ICONSTOP "Application files could not be installed. Check the destination and available disk space."
+  SetErrorLevel 3
+  Quit
+  install_verified:
 
   CreateDirectory "$DataRoot"
   CreateDirectory "$DataRoot\logs"

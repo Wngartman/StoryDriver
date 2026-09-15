@@ -8,7 +8,7 @@ import subprocess
 import time
 
 ROOT = Path(__file__).resolve().parents[2]
-TEST = (ROOT / "build" / "tests" / "installer-lifecycle").resolve()
+TEST = (ROOT / "build" / "tests" / "installer-lifecycle-v2").resolve()
 assert ROOT.resolve() in TEST.parents
 APP, DATA = TEST / "app", TEST / "data"
 assert not APP.exists(), "Use a fresh, dedicated installer fixture directory."

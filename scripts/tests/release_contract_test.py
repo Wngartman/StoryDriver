@@ -70,6 +70,9 @@ class ReleaseContracts(unittest.TestCase):
         self.assertNotIn('RMDir /r "$DataRoot"', installer)
         self.assertNotIn('RMDir /r "$INSTDIR"', installer)
         self.assertIn("uninstall-files.nsh", installer)
+        self.assertIn("kernel32::GetFullPathNameW", installer)
+        self.assertNotIn('GetFullPathName $INSTDIR', installer)
+        self.assertIn('${OrIf} $1 == ""', installer)
 
     def test_runtime_ownership_and_options(self):
         import asyncio
