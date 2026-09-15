@@ -879,31 +879,8 @@ DIRECTOR_NAME_EXCLUSIONS = {
 
 
 def director_named_characters(director_note: str) -> list[str]:
-    title_tokens: list[tuple[str, int, int]] = [
-        (re.sub(r"^(?:Adult|Young|Older|Younger|Main|Major|Primary)\s+", "", match.group(0)).strip(), match.start(), match.end())
-        for match in re.finditer(r"\b[A-Z][a-z]{2,}\b", director_note or "")
-    ]
-    title_tokens = [token for token in title_tokens if token[0]]
-    surname_tokens: set[str] = set()
-    for index, (first, _first_start, first_end) in enumerate(title_tokens[:-1]):
-        second, second_start, _second_end = title_tokens[index + 1]
-        separator = (director_note or "")[first_end:second_start]
-        if not separator.isspace():
-            continue
-        if first in DIRECTOR_NAME_EXCLUSIONS or second in DIRECTOR_NAME_EXCLUSIONS:
-            continue
-        surname_tokens.add(second.lower())
-    names: list[str] = []
-    for first, _start, _end in title_tokens:
-        if not first:
-            continue
-        if first in DIRECTOR_NAME_EXCLUSIONS:
-            continue
-        if first.lower() in surname_tokens:
-            continue
-        if first not in names:
-            names.append(first)
-    return names[:8]
+    from app.memory.foundation import director_named_characters as extract_names
+    return list(dict.fromkeys(name.split()[0] for name in extract_names(director_note)))
 
 
 def likely_character_name_count(text: str) -> int:
@@ -1204,6 +1181,8 @@ def queue_scene_background_work(scene: SceneRead) -> None:
 async def resolve_model(client: LMStudioClient, selected_model: str) -> str:
     if selected_model.strip():
         return selected_model.strip()
+    if client.provider_id == "llama_cpp":
+        raise HTTPException(status_code=400, detail="Choose a local GGUF model in Settings > Writing before generating.")
 
     models = await client.list_models()
     first_model = next((model.get("id") for model in models if model.get("id")), None)

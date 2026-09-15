@@ -40,7 +40,9 @@ def data_root(arguments: argparse.Namespace) -> Path:
         return Path(configured).expanduser().resolve()
     if (root / "portable.marker").is_file():
         return (root / "data").resolve()
-    return ((Path(root.anchor) if root.anchor else Path("D:/")) / "StoryDriverData").resolve()
+    if not getattr(sys, "frozen", False):
+        return (root / "backend" / "data").resolve()
+    return (Path(os.getenv("LOCALAPPDATA", str(Path.home()))) / "StoryDriver").resolve()
 
 
 def port_open(port: int = 8001) -> bool:
@@ -80,13 +82,14 @@ def backup_database(root: Path, destination: Path | None = None) -> Path:
     source = root / "app.db"
     if not source.is_file():
         raise FileNotFoundError(f"StoryDriver database not found: {source}")
-    destination = destination or root / "backups" / "manual" / f"app-{utc_stamp()}.db"
+    destination = destination or root / "backups" / "manual" / f"app-{utc_stamp()}-{uuid.uuid4().hex[:8]}.db"
     destination.parent.mkdir(parents=True, exist_ok=True)
-    temporary = destination.with_suffix(destination.suffix + ".tmp")
+    temporary = destination.with_suffix(f".{uuid.uuid4().hex}.tmp")
     source_connection = sqlite3.connect(str(source))
     target_connection = sqlite3.connect(str(temporary))
     try:
         source_connection.backup(target_connection)
+        target_connection.execute("PRAGMA journal_mode=DELETE")
     finally:
         target_connection.close()
         source_connection.close()
@@ -99,7 +102,14 @@ def backup_database(root: Path, destination: Path | None = None) -> Path:
 
 def cmd_status(arguments: argparse.Namespace) -> dict:
     root = data_root(arguments)
-    response: dict = {"running": port_open(arguments.port), "url": f"http://127.0.0.1:{arguments.port}", "data_root": str(root)}
+    response: dict = {"running": False, "port_in_use": port_open(arguments.port), "url": f"http://127.0.0.1:{arguments.port}", "data_root": str(root)}
+    if response["port_in_use"]:
+        try:
+            with urlopen(f"http://127.0.0.1:{arguments.port}/health", timeout=2) as handle:
+                health = json.loads(handle.read().decode("utf-8"))
+                response["running"] = health.get("app") == "StoryDriver" and health.get("ok") is True
+        except (OSError, URLError, ValueError):
+            pass
     if response["running"]:
         try:
             with urlopen(f"http://127.0.0.1:{arguments.port}/system/services", timeout=2) as handle:
@@ -175,7 +185,10 @@ def cmd_restore(arguments: argparse.Namespace) -> dict:
     if port_open(arguments.port):
         raise RuntimeError("Quit StoryDriver before restoring a database.")
     root = data_root(arguments)
-    source = Path(arguments.source).expanduser().resolve()
+    selected = arguments.source or arguments.backup
+    if not selected:
+        raise ValueError("Specify a database or export ZIP to restore.")
+    source = Path(selected).expanduser().resolve()
     if not source.is_file():
         raise FileNotFoundError(source)
     temporary = root / "temp" / f"restore-{uuid.uuid4().hex}.db"
@@ -185,11 +198,36 @@ def cmd_restore(arguments: argparse.Namespace) -> dict:
             with archive.open("app.db") as source_handle, temporary.open("wb") as target:
                 shutil.copyfileobj(source_handle, target)
     else:
-        shutil.copy2(source, temporary)
+        origin = sqlite3.connect(f"file:{source.as_posix()}?mode=ro", uri=True)
+        try:
+            target = sqlite3.connect(str(temporary))
+            try:
+                origin.backup(target)
+                target.execute("PRAGMA journal_mode=DELETE")
+            finally:
+                target.close()
+        finally:
+            origin.close()
     if database_integrity(temporary) != "ok":
         temporary.unlink(missing_ok=True)
         raise RuntimeError("Restore source failed SQLite integrity validation.")
+    check = sqlite3.connect(str(temporary))
+    try:
+        tables = {row[0] for row in check.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if not {"sessions", "scenes", "scene_versions"}.issubset(tables):
+            raise ValueError("This is not a StoryDriver database.")
+        check.execute("PRAGMA journal_mode=DELETE")
+    finally:
+        check.close()
     previous = backup_database(root, root / "backups" / "pre-restore" / f"app-{utc_stamp()}.db") if (root / "app.db").is_file() else None
+    # A WAL belongs to the old database and must never be replayed onto the restored file.
+    if (root / "app.db").is_file():
+        existing = sqlite3.connect(str(root / "app.db"), timeout=1)
+        try:
+            existing.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            existing.execute("PRAGMA journal_mode=DELETE")
+        finally:
+            existing.close()
     os.replace(temporary, root / "app.db")
     return {"ok": True, "restored": str(source), "pre_restore_backup": str(previous) if previous else None}
 
@@ -225,27 +263,31 @@ def cmd_start(arguments: argparse.Namespace) -> dict:
     if not executable.is_file():
         raise FileNotFoundError(executable)
     flags = getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
-    subprocess.Popen([str(executable)], cwd=str(executable.parent), creationflags=flags, close_fds=True)
+    subprocess.Popen([str(executable), "--data-root", str(data_root(arguments))], cwd=str(executable.parent), creationflags=flags, close_fds=True)
     return {"ok": True, "started": str(executable)}
 
 
 def parser() -> argparse.ArgumentParser:
     value = argparse.ArgumentParser(prog="StoryDriverCLI", description="Local StoryDriver maintenance utility")
     value.add_argument("--data-root")
-    value.add_argument("--port", type=int, default=8001)
+    value.add_argument("--port", type=int, default=None)
     commands = value.add_subparsers(dest="command", required=True)
     for name in ("status", "doctor", "backup", "export", "start"):
         commands.add_parser(name)
     restore = commands.add_parser("restore")
-    restore.add_argument("source")
+    restore.add_argument("source", nargs="?")
+    restore.add_argument("--backup", help="Alias for the restore source")
     cleanup = commands.add_parser("cleanup")
-    cleanup.add_argument("--apply", action="store_true")
+    cleanup_mode = cleanup.add_mutually_exclusive_group()
+    cleanup_mode.add_argument("--apply", action="store_true")
+    cleanup_mode.add_argument("--dry-run", action="store_true")
     cleanup.add_argument("--older-than-days", type=int, default=7)
     return value
 
 
 def main() -> int:
     arguments = parser().parse_args()
+    arguments.port = arguments.port or read_config(app_root()).get("backendPort", 8001)
     commands = {
         "status": cmd_status,
         "doctor": cmd_doctor,

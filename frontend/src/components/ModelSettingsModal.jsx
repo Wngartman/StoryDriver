@@ -102,8 +102,8 @@ const defaultSystemPrompt = storyDriverProseV3SystemPrompt;
 
 const defaultSettings = {
   active_preset_id: null,
-  provider: "lm_studio",
-  provider_url: "http://localhost:1234/v1",
+  provider: "llama_cpp",
+  provider_url: "http://127.0.0.1:12345/v1",
   lm_studio_url: "http://localhost:1234/v1",
   model: "",
   model_path: null,
@@ -233,7 +233,7 @@ function Section({ children, defaultOpen = true, title }) {
   const sectionId = `model-setting-section-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 
   return (
-    <section className="border-b border-line py-4 last:border-b-0">
+    <section style={{ order: ({ "Model Connection": 0, "Writing Length": 1, "System Prompt": 2, "Core Settings": 3, "Preset": 4 })[title] ?? 5 }} className="min-w-0 border-b border-line py-4 last:border-b-0">
       <button
         aria-controls={sectionId}
         aria-expanded={isOpen}
@@ -444,7 +444,7 @@ function displayModelName(models, modelId) {
   return model?.name || modelId;
 }
 
-export default function ModelSettingsModal({ onClose }) {
+export default function ModelSettingsModal({ onClose, embedded = false, onRegisterSave }) {
   const {
     activeSessionId,
     createModelPreset,
@@ -472,9 +472,9 @@ export default function ModelSettingsModal({ onClose }) {
   const [local, setLocal] = useState(() => ({ ...defaultSettings, ...(modelSettings || {}) }));
   const [presetName, setPresetName] = useState("Story Prose");
   const [status, setStatus] = useState("Ready");
-  const taskTypes = (taskModelTaskTypes.length ? taskModelTaskTypes : fallbackTaskTypes).filter(
+  const taskTypes = useMemo(() => (taskModelTaskTypes.length ? taskModelTaskTypes : fallbackTaskTypes).filter(
     (task) => task.id !== "image_prompt_generation",
-  );
+  ), [taskModelTaskTypes]);
   const [selectedTaskType, setSelectedTaskType] = useState(taskTypes[0]?.id || "prose_generation");
   const [taskDraft, setTaskDraft] = useState(() =>
     normalizeTaskDraft(taskModelProfiles[selectedTaskType], selectedTaskType, taskTypes),
@@ -491,6 +491,41 @@ export default function ModelSettingsModal({ onClose }) {
   const initializingRef = useRef(!modelSettings);
   const savedSnapshotRef = useRef(modelSettings ? modelSettingsSnapshot({ ...defaultSettings, ...modelSettings }) : null);
   const presetsRef = useRef(modelPresets);
+  const saveQueueRef = useRef(Promise.resolve());
+  const latestLocalRef = useRef(local);
+  latestLocalRef.current = local;
+  const saveCurrentRef = useRef(null);
+  saveCurrentRef.current = () => {
+    const draft = latestLocalRef.current;
+    const normalized = normalizeModelSettingsForSave(draft);
+    const snapshot = JSON.stringify(normalized);
+    const request = saveQueueRef.current.catch(() => {}).then(async () => {
+      if (snapshot === savedSnapshotRef.current) return;
+      setStatus("Saving...");
+      try {
+        await saveModelSettings(normalized);
+        if (draft.active_preset_id) {
+          const preset = presetsRef.current.find((item) => item.id === draft.active_preset_id);
+          if (preset) await updateModelPreset(preset.id, { name: preset.name, system_prompt: draft.system_prompt, settings: modelPayload(draft) });
+        }
+        savedSnapshotRef.current = snapshot;
+        setStatus("Saved");
+      } catch (error) {
+        setStatus(`Not saved: ${error.message}`);
+        throw error;
+      }
+    });
+    saveQueueRef.current = request;
+    return request;
+  };
+  useEffect(() => {
+    onRegisterSave?.(() => saveCurrentRef.current());
+    return () => onRegisterSave?.(null);
+  }, [onRegisterSave]);
+
+  const closeAfterSave = async () => {
+    try { await saveCurrentRef.current(); onClose?.(); } catch { /* Keep the editor open for correction. */ }
+  };
 
   useEffect(() => {
     presetsRef.current = modelPresets;
@@ -551,25 +586,7 @@ export default function ModelSettingsModal({ onClose }) {
       return undefined;
     }
     setStatus("Autosaving...");
-    const timeout = window.setTimeout(async () => {
-      try {
-        await saveModelSettings(normalized);
-        if (local.active_preset_id) {
-          const preset = presetsRef.current.find((item) => item.id === local.active_preset_id);
-          if (preset) {
-            await updateModelPreset(preset.id, {
-              name: preset.name,
-              system_prompt: local.system_prompt,
-              settings: modelPayload(local),
-            });
-          }
-        }
-        savedSnapshotRef.current = snapshot;
-        setStatus("Saved");
-      } catch (error) {
-        setStatus("Save failed");
-      }
-    }, 550);
+    const timeout = window.setTimeout(() => saveCurrentRef.current().catch(() => {}), 550);
 
     return () => window.clearTimeout(timeout);
   }, [local, saveModelSettings, updateModelPreset]);
@@ -658,9 +675,15 @@ export default function ModelSettingsModal({ onClose }) {
     const requestId = `model-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const handler = (event) => {
       if (event.data?.requestId !== requestId) return;
+      window.clearTimeout(timer);
       window.chrome.webview.removeEventListener("message", handler);
+      if (event.data.error) { reject(new Error(event.data.error)); return; }
       resolve(event.data.path || null);
     };
+    const timer = window.setTimeout(() => {
+      window.chrome.webview.removeEventListener("message", handler);
+      reject(new Error("File selection timed out. Try again."));
+    }, 300000);
     window.chrome.webview.addEventListener("message", handler);
     window.chrome.webview.postMessage({ type, requestId });
   });
@@ -691,7 +714,7 @@ export default function ModelSettingsModal({ onClose }) {
     const payload = {
       provider: local.provider,
       endpoint,
-      model: local.model_path || local.model,
+      model: local.provider === "llama_cpp" ? (local.model_path || local.model) : local.model,
       options: local.provider === "llama_cpp" ? {
         context_length: optionalNumber(local.llama_context_length),
         gpu_layers: optionalNumber(local.llama_gpu_layers),
@@ -702,11 +725,13 @@ export default function ModelSettingsModal({ onClose }) {
       } : {},
     };
     try {
+      await saveCurrentRef.current();
       const result = action === "load"
         ? await api.loadModelProvider(payload)
         : action === "unload"
           ? await api.unloadModelProvider(payload)
           : await api.testModelProvider(payload);
+      if (result.ok === false) throw new Error(result.error || "The provider could not complete this operation.");
       setProviderStatus(action === "test" ? `Ready in ${Math.round(result.latency_ms || 0)} ms: ${result.text || "test passed"}` : `${local.provider === "llama_cpp" ? "Built-in llama.cpp" : "Provider"} ${action === "load" ? "loaded" : "unloaded"}`);
       await handleRefreshModels().catch(() => {});
     } catch (error) {
@@ -727,7 +752,7 @@ export default function ModelSettingsModal({ onClose }) {
     ? models.map((model) => model.name || model.id).join(", ")
     : "No loaded models returned yet";
   const selectableModels = local.provider === "llama_cpp"
-    ? modelLibrary.map((item) => ({ id: item.path, name: item.name, ...item }))
+    ? modelLibrary.map((item) => ({ ...item, id: item.path, name: item.name }))
     : models;
   const taskRoutingRows = useMemo(
     () =>
@@ -914,13 +939,13 @@ export default function ModelSettingsModal({ onClose }) {
   return (
     <motion.div
       animate={{ opacity: 1 }}
-      className="fixed inset-0 z-50 grid place-items-center bg-black/62 p-[max(12px,env(safe-area-inset-top))_max(12px,env(safe-area-inset-right))_max(12px,env(safe-area-inset-bottom))_max(12px,env(safe-area-inset-left))] backdrop-blur-sm"
+      className={embedded ? "min-w-0" : "fixed inset-0 z-50 grid place-items-center bg-black/62 p-3 backdrop-blur-sm"}
       exit={{ opacity: 0 }}
       initial={{ opacity: 0 }}
     >
       <motion.div
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="sd-modal flex max-h-[calc(100dvh-24px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] w-full max-w-3xl flex-col rounded-xl border border-line bg-panel shadow-glow"
+        className={embedded ? "flex min-w-0 flex-col" : "sd-modal flex max-h-[calc(100dvh-24px)] w-full max-w-3xl flex-col rounded-lg border border-line bg-panel shadow-glow"}
         exit={{ opacity: 0, scale: 0.98, y: 12 }}
         initial={{ opacity: 0, scale: 0.98, y: 12 }}
         transition={{ type: "spring", stiffness: 340, damping: 30 }}
@@ -929,18 +954,18 @@ export default function ModelSettingsModal({ onClose }) {
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <SlidersHorizontal size={18} className="text-tide" />
-              <h2 className="text-lg font-semibold text-zinc-100">Model Settings</h2>
+              <h2 className="text-base font-semibold text-zinc-100">Writing settings</h2>
             </div>
             <p className="mt-1 text-xs text-muted">{isLoadingSettings ? "Loading..." : status}</p>
           </div>
-          <button
+          {!embedded ? <button
             aria-label="Close model settings"
             className={iconButton}
-            onClick={onClose}
+            onClick={closeAfterSave}
             type="button"
           >
             <X size={17} />
-          </button>
+          </button> : null}
         </div>
 
         <div className="shrink-0 border-b border-line px-4 py-3">
@@ -950,7 +975,7 @@ export default function ModelSettingsModal({ onClose }) {
           </div>
         </div>
 
-        <div className="story-scrollbar min-h-0 flex-1 overflow-y-auto px-4">
+        <div className="story-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto px-4">
           {settingsView === "basic" ? <>
           <Section defaultOpen={false} title="Preset">
             <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,220px)_auto_auto_auto]">
@@ -1002,7 +1027,7 @@ export default function ModelSettingsModal({ onClose }) {
 
           <Section defaultOpen={false} title="System Prompt">
             <p className="mb-3 rounded-lg border border-tide/20 bg-tide/10 px-3 py-2 text-xs leading-5 text-zinc-300">
-              Main creative authority for prose generation. Story State supplies factual continuity; it does not overrule this prompt or the submitted director note.
+              Main creative authority for prose generation. StoryDriver does not cap its length; the selected model's context window remains the practical limit. Story State supplies factual continuity and does not overrule this prompt or the submitted director note.
             </p>
             <div className="mb-3 rounded-lg border border-line bg-[#0d0e11] p-3 text-xs leading-5 text-muted">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -1015,9 +1040,6 @@ export default function ModelSettingsModal({ onClose }) {
                 <div className="flex flex-wrap gap-2">
                   <button className={textButton} onClick={useStoryDriverProseV3Prompt} type="button">
                     Use Prose v3
-                  </button>
-                  <button className={textButton} onClick={keepCurrentSystemPrompt} type="button">
-                    Keep Current
                   </button>
                   <button className={textButton} onClick={resetProseTaskNotesToV3} type="button">
                     Reset v3 Notes
@@ -1036,75 +1058,6 @@ export default function ModelSettingsModal({ onClose }) {
             </div>
           </Section>
 
-          <Section title="Writing Engine">
-            <div className="grid gap-2 text-xs leading-5 text-muted sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <span className="font-medium text-zinc-300">All writing tasks use: </span>
-                <span className="safe-wrap">{displayModelName(models, local.model)}</span>
-              </div>
-              <div><span className="text-zinc-300">Structured scene planning:</span> Always on</div>
-              <div><span className="text-zinc-300">Quality review:</span> On</div>
-              <div><span className="text-zinc-300">Story State extraction:</span> On</div>
-              <div><span className="text-zinc-300">Repair limit:</span> One targeted pass</div>
-              <div className="rounded-lg border border-line bg-[#0d0e11] px-3 py-2 text-xs leading-5 text-muted sm:col-span-2">
-                <div className="font-medium text-zinc-300">Definitive deliberate pipeline</div>
-                <div>
-                  Every scene operation runs bounded continuity, structured planning, prose, review, and one repair only for a major failure.
-                </div>
-                <div className="mt-2 text-zinc-400">
-                  StoryDriver planning is always on. Native LM reasoning is a separate advanced runtime setting controlled by the selected model route.
-                </div>
-              </div>
-              <details className="rounded-lg border border-line bg-[#0d0e11] p-3 sm:col-span-2">
-                <summary className="cursor-pointer text-sm font-semibold text-zinc-100">Advanced writing controls</summary>
-                <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                  <label>
-                    <SettingLabel className="mb-1.5 text-xs font-medium text-muted" name="Structured Planning" />
-                    <select
-                      className={inputClass}
-                      disabled
-                      onChange={() => {}}
-                      value="on"
-                    >
-                      <option value="on">Always on</option>
-                    </select>
-                  </label>
-                  <label>
-                    <SettingLabel className="mb-1.5 text-xs font-medium text-muted" name="Chapter Extension" />
-                    <select
-                      className={inputClass}
-                      onChange={(event) => update({ chapter_extension_enabled: event.target.value === "on" })}
-                      value={local.chapter_extension_enabled === false ? "off" : "on"}
-                    >
-                      <option value="on">On</option>
-                      <option value="off">Off</option>
-                    </select>
-                  </label>
-                  <label>
-                    <SettingLabel className="mb-1.5 text-xs font-medium text-muted" name="Adherence Check" />
-                    <select
-                      className={inputClass}
-                      onChange={(event) => update({ adherence_check_mode: event.target.value })}
-                      value={local.adherence_check_mode || "warn"}
-                    >
-                      {Object.entries(adherenceCheckModes).map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                <p className="mt-3 text-xs leading-5 text-muted">
-                  Structured planning and quality review are mandatory for Continue, Regenerate, Rewrite, and Revise. Routing can be changed in task profiles; the pipeline itself is not a normal-mode toggle.
-                </p>
-              </details>
-              </div>
-              <p className="mt-3 rounded-lg border border-line bg-[#0d0e11] px-3 py-2 text-xs leading-5 text-muted">
-                Complete scene latency depends on the selected local provider and model. StoryDriver keeps the deliberate writing pipeline unchanged across providers.
-              </p>
-            </Section>
-
           <Section title="Model Connection">
             <div className="grid gap-3 sm:grid-cols-2">
               <label>
@@ -1118,7 +1071,7 @@ export default function ModelSettingsModal({ onClose }) {
                       : provider === "lm_studio"
                         ? local.lm_studio_url || "http://127.0.0.1:1234/v1"
                         : local.provider_url || "http://127.0.0.1:1234/v1";
-                    update({ provider, provider_url: providerUrl });
+                    update({ provider, provider_url: providerUrl, model: "", model_path: null, active_preset_id: null });
                   }}
                   value={local.provider || "lm_studio"}
                 >
@@ -1160,7 +1113,7 @@ export default function ModelSettingsModal({ onClose }) {
                     onChange={(event) => update({ model: event.target.value, model_path: local.provider === "llama_cpp" ? event.target.value : null })}
                     value={local.provider === "llama_cpp" ? (local.model_path || local.model) : local.model}
                   >
-                    <option value="">Auto-select first loaded model</option>
+                    <option value="">{local.provider === "llama_cpp" ? "Choose a GGUF model" : "Auto-select first loaded model"}</option>
                     {selectableModels.map((model) => (
                       <option key={model.id} value={model.id}>
                         {model.name || model.id}
@@ -1170,8 +1123,8 @@ export default function ModelSettingsModal({ onClose }) {
                 ) : (
                   <input
                     className={inputClass}
-                    onChange={(event) => update({ model: event.target.value })}
-                    placeholder="Refresh models or type model id"
+                    onChange={(event) => update({ model: event.target.value, model_path: local.provider === "llama_cpp" ? event.target.value : null })}
+                    placeholder={local.provider === "llama_cpp" ? "Full path to a local .gguf file" : "Refresh models or type model ID"}
                     value={local.model}
                   />
                 )}
@@ -1199,11 +1152,11 @@ export default function ModelSettingsModal({ onClose }) {
                 <summary className="cursor-pointer text-sm font-semibold text-zinc-100">llama.cpp runtime controls</summary>
                 <div className="mt-3 grid gap-3 sm:grid-cols-3">
                   {[
-                    ["Context", "llama_context_length", 512, 1048576, 1024],
-                    ["GPU Layers", "llama_gpu_layers", 0, 10000, 1],
-                    ["Threads", "llama_threads", 1, 512, 1],
-                    ["Batch", "llama_batch_size", 32, 65536, 32],
-                    ["Parallel Slots", "llama_parallel_slots", 1, 64, 1],
+                    ["Context", "llama_context_length", 2048, 131072, 1024],
+                    ["GPU Layers", "llama_gpu_layers", -1, 999, 1],
+                    ["Threads", "llama_threads", 1, 256, 1],
+                    ["Batch", "llama_batch_size", 32, 8192, 32],
+                    ["Parallel Slots", "llama_parallel_slots", 1, 8, 1],
                   ].map(([label, key, min, max, step]) => (
                     <label key={key}>
                       <SettingLabel className="mb-1.5 text-xs font-medium text-muted" name={label} />
@@ -1220,7 +1173,7 @@ export default function ModelSettingsModal({ onClose }) {
               </details>
             ) : null}
 
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            {local.provider === "lm_studio" ? <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <label>
                 <SettingLabel className="mb-1.5 text-xs font-medium text-muted" name="Inference Backend" />
                 <select
@@ -1261,8 +1214,8 @@ export default function ModelSettingsModal({ onClose }) {
                   value={local.context_length ?? ""}
                 />
               </label>
-            </div>
-            <p className="mt-3 rounded-lg border border-line bg-[#0d0e11] px-3 py-2 text-xs leading-5 text-muted">
+            </div> : null}
+            <p className="mt-3 text-xs leading-5 text-muted">
               StoryDriver accepts loopback and private-LAN endpoints only. Built-in llama.cpp uses the bundled Vulkan runtime and never downloads a model automatically.
             </p>
           </Section>

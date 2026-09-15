@@ -102,6 +102,10 @@ def main() -> int:
         raise RuntimeError("The official llama.cpp Vulkan runtime or its verified source archive is missing.")
 
     env = build_environment()
+    narration_python = ROOT / "tools" / "narration" / ".venv" / "Scripts" / "python.exe"
+    if not narration_python.is_file():
+        raise FileNotFoundError("Create tools/narration/.venv and install apps/narration/requirements.lock.txt first.")
+    run([str(PACKAGING_PYTHON), str(ROOT / "scripts" / "prepare_narration_runtime.py")], env=env)
     RELEASE.mkdir(parents=True, exist_ok=True)
     app_dir = BUILD / "app"
     if not args.skip_tools:
@@ -122,16 +126,50 @@ def main() -> int:
             "-c", "Release", "-r", "win-x64", "--self-contained", "true",
             "-o", str(BUILD / "desktop"), "--nologo",
         ], env=env)
+        run([
+            str(narration_python), "-m", "PyInstaller", "--noconfirm", "--clean",
+            "--distpath", str(BUILD), "--workpath", str(BUILD / "pyinstaller-narration-work"),
+            str(ROOT / "installer" / "pyinstaller" / "storydriver_narration.spec"),
+        ], env=env)
 
         fresh_directory(app_dir, BUILD)
         copy_tree(BUILD / "desktop", app_dir)
         copy_tree(BUILD / "backend", app_dir / "backend")
         copy_tree(ROOT / "frontend" / "dist", app_dir / "backend" / "frontend_dist")
         copy_tree(LLAMA, app_dir / "runtimes" / "llama.cpp")
+        copy_tree(BUILD / "narration", app_dir / "runtimes" / "kokoro")
+        for asset in json.loads((ROOT / "runtimes" / "kokoro.manifest.json").read_text())["assets"]:
+            shutil.copy2(ROOT / "runtimes" / "kokoro" / asset["name"], app_dir / "runtimes" / "kokoro" / asset["name"])
+        copy_tree(ROOT / "third_party" / "licenses", app_dir / "LICENSES")
+        for environment in (ROOT / "tools" / "packaging" / ".venv", ROOT / "tools" / "narration" / ".venv"):
+            for metadata in (environment / "Lib" / "site-packages").glob("*.dist-info"):
+                for path in metadata.rglob("*"):
+                    if path.is_file() and any(word in path.name.lower() for word in ("license", "copying", "notice")):
+                        target = app_dir / "LICENSES" / metadata.name / path.relative_to(metadata)
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(path, target)
         shutil.copy2(BUILD / "cli" / "StoryDriverCLI.exe", app_dir / "StoryDriverCLI.exe")
         shutil.copy2(ROOT / "apps" / "desktop" / "storydriver.config.example.json", app_dir / "storydriver.config.example.json")
         shutil.copy2(ROOT / "runtimes" / "llama.cpp.manifest.json", app_dir / "runtimes" / "llama.cpp.manifest.json")
         shutil.copy2(ROOT / "VERSION", app_dir / "VERSION")
+        for name in ("LICENSE", "THIRD_PARTY_NOTICES.md"):
+            shutil.copy2(ROOT / name, app_dir / name)
+
+    # Keep redistribution notices for browser and native dependencies beside the binaries.
+    npm_root = ROOT / "frontend" / "node_modules"
+    packages = [path for path in npm_root.iterdir() if path.is_dir() and not path.name.startswith(".")]
+    packages = [nested for path in packages for nested in (list(path.iterdir()) if path.name.startswith("@") else [path]) if nested.is_dir()]
+    for package in packages:
+        for path in package.glob("*"):
+            if path.is_file() and any(word in path.name.lower() for word in ("license", "copying", "notice")):
+                target = app_dir / "LICENSES" / "frontend" / package.relative_to(npm_root) / path.name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(path, target)
+    for path in (ROOT / ".tools" / "nuget").rglob("*"):
+        if path.is_file() and any(word in path.name.lower() for word in ("license", "thirdpartynotice")):
+            target = app_dir / "LICENSES" / "dotnet" / path.relative_to(ROOT / ".tools" / "nuget")
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, target)
 
     required = [
         app_dir / "StoryDriver.exe",
@@ -146,9 +184,19 @@ def main() -> int:
 
     portable = package_portable(app_dir)
     shutil.copy2(ROOT / "installer" / "RELEASE_NOTES.md", RELEASE / "RELEASE_NOTES.md")
-    run([str(NSIS), "/V2", f"/DROOT_DIR={ROOT}", str(ROOT / "installer" / "StoryDriver.nsi")], env=env)
+    # Uninstall only files shipped in this build. Never recursively delete a user-selected folder.
+    manifest = []
+    for path in sorted(app_dir.rglob("*")):
+        if path.is_file():
+            relative = str(path.relative_to(app_dir)).replace("$", "$$")
+            manifest.append(f'Delete "$INSTDIR\\{relative}"')
+    for path in sorted((p for p in app_dir.rglob("*") if p.is_dir()), key=lambda p: len(p.parts), reverse=True):
+        relative = str(path.relative_to(app_dir)).replace("$", "$$")
+        manifest.append(f'RMDir "$INSTDIR\\{relative}"')
+    (BUILD / "uninstall-files.nsh").write_text("\n".join(manifest) + "\n", encoding="utf-8")
+    run([str(NSIS), "/V2", f"/DROOT_DIR={ROOT}", f"/DPRODUCT_VERSION={VERSION}", str(ROOT / "installer" / "StoryDriver.nsi")], env=env)
     installer = RELEASE / "StoryDriver-Setup-x64.exe"
-    artifacts = [installer, portable, RELEASE / "RELEASE_NOTES.md"]
+    artifacts = [installer, portable, RELEASE / "StoryDriver-ThirdParty-Sources.zip", RELEASE / "RELEASE_NOTES.md"]
     checksums = RELEASE / "SHA256SUMS.txt"
     checksums.write_text("".join(f"{sha256(path)}  {path.name}\n" for path in artifacts), encoding="ascii")
     print(json.dumps({

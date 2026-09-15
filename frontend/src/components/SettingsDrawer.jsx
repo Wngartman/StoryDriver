@@ -14,7 +14,7 @@ import {
   Volume2,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { API_BASE_URL } from "../api.js";
 import { DEFAULT_UI_SETTINGS } from "../services/displaySettings.js";
 import { useAppStore } from "../store/useAppStore.js";
@@ -24,6 +24,8 @@ import { NarrationDeviceDiagnostics, VoiceComparisonLab } from "./NarrationSetti
 import CustomVoiceLibrary from "./CustomVoiceLibrary.jsx";
 import BackgroundLibrarySettings from "./BackgroundLibrarySettings.jsx";
 import { SettingLabel } from "./SettingHelp.jsx";
+import ModelSettingsModal from "./ModelSettingsModal.jsx";
+import DesktopSettings from "./DesktopSettings.jsx";
 
 const EMPTY_ARRAY = Object.freeze([]);
 const fieldClass =
@@ -106,20 +108,22 @@ function ServiceRow({ endpoint, name, ok, paused = false, statusLabel = null }) 
 }
 
 const SETTINGS_CATEGORIES = [
-  ["general", "General"],
   ["writing", "Writing"],
-  ["models", "Models"],
   ["narration", "Narration"],
-  ["memory", "Memory & Continuity"],
   ["appearance", "Appearance"],
-  ["privacy", "LAN & Privacy"],
-  ["diagnostics", "Diagnostics"],
-  ["about", "About"],
+  ["app", "App"],
 ];
 
-export default function SettingsDrawer({ onClose, onOpenModels }) {
-  const [activeCategory, setActiveCategory] = useState("general");
+export default function SettingsDrawer({ onClose }) {
+  const [activeCategory, setActiveCategory] = useState("writing");
   const [settingsSearch, setSettingsSearch] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const saveWritingRef = useRef(null);
+  const registerSave = useCallback((save) => { saveWritingRef.current = save; }, []);
+  const closeAfterSave = useCallback(async () => {
+    try { await saveWritingRef.current?.(); onClose(); }
+    catch (error) { setSaveError(error.message || "Correct the unsaved writing settings before closing."); }
+  }, [onClose]);
   const {
     availableUiPresets,
     browserVoices,
@@ -151,19 +155,27 @@ export default function SettingsDrawer({ onClose, onOpenModels }) {
     fetchCustomUiPresets();
     fetchKokoroVoices();
     fetchTTSStatus();
-    fetchDiagnostics();
-    fetchStorageMaintenance();
     if (!window.speechSynthesis) return undefined;
     window.speechSynthesis.addEventListener?.("voiceschanged", loadBrowserVoices);
     return () => window.speechSynthesis.removeEventListener?.("voiceschanged", loadBrowserVoices);
   }, [fetchCustomUiPresets, fetchDiagnostics, fetchKokoroVoices, fetchStorageMaintenance, fetchTTSStatus, loadBrowserVoices]);
 
+  useEffect(() => {
+    if (activeCategory === "app") { fetchDiagnostics(); fetchStorageMaintenance(); }
+  }, [activeCategory, fetchDiagnostics, fetchStorageMaintenance]);
+
+  useEffect(() => {
+    const closeOnEscape = (event) => { if (event.key === "Escape") { event.preventDefault(); closeAfterSave(); } };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [closeAfterSave]);
+
   const updateTTS = (patch) => {
-    saveTTSSettings(patch).catch(() => {});
+    saveTTSSettings(patch).then(() => setSaveError("")).catch((error) => setSaveError(error.message));
   };
 
   const updateUI = (patch) => {
-    saveUiSettings(patch).catch(() => {});
+    saveUiSettings(patch).then(() => setSaveError("")).catch((error) => setSaveError(error.message));
   };
 
   const presets = availableUiPresets?.length ? availableUiPresets : [getUiPreset("default")];
@@ -223,8 +235,8 @@ export default function SettingsDrawer({ onClose, onOpenModels }) {
       tts_provider: provider,
       high_quality_local_enabled: premium ? true : ttsSettings.high_quality_local_enabled,
       tts_quality_mode: premium ? "premium" : "balanced",
-      tts_voice_profile_id: premium ? "premium_female_narrator" : ttsSettings.tts_voice_profile_id === "premium_female_narrator" ? "natural_female_narrator" : ttsSettings.tts_voice_profile_id,
-      tts_voice: premium ? "Serena" : ttsSettings.tts_voice_profile_id === "premium_female_narrator" ? null : ttsSettings.tts_voice,
+      tts_voice_profile_id: premium ? "premium_female_narrator" : "natural_female_narrator",
+      tts_voice: premium ? "Serena" : null,
     });
   };
 
@@ -247,11 +259,13 @@ export default function SettingsDrawer({ onClose, onOpenModels }) {
       exit={{ opacity: 0 }}
       initial={{ opacity: 0 }}
     >
-      <button aria-label="Dismiss settings" className="absolute inset-0" onClick={onClose} type="button" />
+      <button aria-label="Dismiss settings" className="absolute inset-0" onClick={closeAfterSave} type="button" />
       <motion.aside
         animate={{ x: 0 }}
         aria-label="StoryDriver settings"
-        className="sd-drawer absolute right-0 top-0 flex h-full w-full max-w-xl flex-col overflow-x-hidden border-l border-line bg-panel shadow-glow"
+        className="sd-drawer absolute right-0 top-0 flex h-full w-full max-w-3xl flex-col overflow-x-hidden border-l border-line bg-panel shadow-glow"
+        role="dialog"
+        aria-modal="true"
         exit={{ x: 640 }}
         initial={false}
         transition={{ type: "spring", stiffness: 340, damping: 32 }}
@@ -259,7 +273,6 @@ export default function SettingsDrawer({ onClose, onOpenModels }) {
         <header className="flex min-h-16 items-center justify-between border-b border-line px-4 sm:px-5">
           <div>
             <h2 className="text-lg font-semibold text-zinc-100">Settings</h2>
-            <p className="text-xs text-muted">Definitive local writing path</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -274,7 +287,7 @@ export default function SettingsDrawer({ onClose, onOpenModels }) {
             <button
               aria-label="Close settings"
               className="sd-icon-button grid h-10 w-10 place-items-center rounded-lg border border-line bg-panelSoft text-zinc-200"
-              onClick={onClose}
+              onClick={closeAfterSave}
               title="Close"
               type="button"
             >
@@ -309,74 +322,12 @@ export default function SettingsDrawer({ onClose, onOpenModels }) {
         </div>
 
         <div className="story-scrollbar min-h-0 flex-1 space-y-5 overflow-x-hidden overflow-y-auto p-4 sm:p-5">
-          {showCategory("general", "local desktop data storydriver status") ? (
-            <SettingSection icon={Gauge} title="General">
-              <div className="grid gap-2 rounded-lg border border-line bg-[#0d0e11] p-3 text-sm">
-                <div className="flex items-center justify-between gap-3"><span className="text-muted">Writing path</span><span className="text-zinc-200">Definitive local</span></div>
-                <div className="flex items-center justify-between gap-3"><span className="text-muted">Images</span><span className="text-zinc-200">Paused</span></div>
-                <div className="flex items-center justify-between gap-3"><span className="text-muted">Data</span><span className="safe-wrap text-right text-zinc-200">{storageMaintenance?.data_dir || diagnostics?.paths?.data_dir || "Local data root"}</span></div>
-              </div>
-            </SettingSection>
-          ) : null}
-
-          {showCategory("models", "provider model gguf llama cpp lm studio openai local routing") ? (
-            <SettingSection icon={Server} title="Models">
-              <div className="rounded-lg border border-line bg-[#0d0e11] p-3">
-                <div className="text-sm font-medium text-zinc-200">{selectedModel}</div>
-                <div className="mt-1 text-xs text-muted">Provider, local model library, runtime controls, prompts, presets, and task routing.</div>
-                <button className="sd-action-button mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg border border-line bg-panel px-3 text-sm text-zinc-200" onClick={() => { onClose(); onOpenModels?.(); }} type="button">
-                  <Server size={15} />
-                  Open model settings
-                </button>
-              </div>
-            </SettingSection>
-          ) : null}
-
-          {showCategory("memory", "story state continuity relationships inventory blocking accepted version") ? (
-            <SettingSection icon={Database} title="Memory & Continuity">
-              <div className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-lg border border-line bg-[#0d0e11] p-3 text-xs text-muted">
-                <span>Story State</span><span className="text-right text-zinc-200">Automatic</span>
-                <span>Accepted versions</span><span className="text-right text-zinc-200">Canonical</span>
-                <span>Scene blocking</span><span className="text-right text-zinc-200">Tracked</span>
-                <span>Relationships and objects</span><span className="text-right text-zinc-200">Tracked</span>
-              </div>
-            </SettingSection>
-          ) : null}
-
-          {showCategory("writing", "pipeline planning review repair length prose prompt") ? <SettingSection icon={Gauge} title="Writing">
-            <div className="grid gap-3 rounded-lg border border-line bg-[#0d0e11] p-3">
-              <div className="flex min-w-0 items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-zinc-100">Definitive pipeline</div>
-                  <div className="safe-wrap mt-1 text-xs text-muted">{selectedModel}</div>
-                </div>
-                <Status ok>Active</Status>
-              </div>
-              <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs text-muted">
-                <span>Scene plan</span><span className="text-right text-zinc-200">Required</span>
-                <span>Continuity pack</span><span className="text-right text-zinc-200">Memory v3</span>
-                <span>Review</span><span className="text-right text-zinc-200">Required</span>
-                <span>Repair limit</span><span className="text-right text-zinc-200">One targeted pass</span>
-              </div>
-              {modelSettings.writing_path && modelSettings.writing_path !== "deliberate_pipeline" ? (
-                <p className="rounded-lg border border-ember/30 bg-ember/10 px-3 py-2 text-xs text-ember">
-                  Diagnostics report a stale writing path. Refresh the backend before generating.
-                </p>
-              ) : null}
-            </div>
-          </SettingSection> : null}
-
-          {showCategory("privacy", "lan private network endpoints offline local") ? <SettingSection icon={ShieldCheck} title="LAN & Privacy">
-            <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-line bg-[#0d0e11] p-3">
-              <div className="min-w-0">
-                <div className="text-sm font-medium text-zinc-200">Local endpoints only</div>
-                <div className="safe-wrap mt-1 text-xs text-muted">External runtime endpoints are blocked by default.</div>
-              </div>
-              <Status ok={localOnly}>{localOnly ? "Private" : "Override"}</Status>
-            </div>
-          </SettingSection> : null}
-
-          {showCategory("diagnostics", "services backend kokoro qwen lm studio status storage") ? <SettingSection icon={Server} title="Services">
+          {saveError ? <p className="safe-wrap text-sm text-ember" role="alert">{saveError}</p> : null}
+          <div hidden={!showCategory("writing", "model provider gguf llama lm studio prompt length sampling preset task temperature")}>
+            <ModelSettingsModal embedded onRegisterSave={registerSave} />
+          </div>
+          {showCategory("app", "desktop version lan tray paths kokoro setup data") ? <DesktopSettings /> : null}
+          {showCategory("app", "services backend kokoro qwen lm studio status storage") ? <SettingSection icon={Server} title="Services">
             <div className="rounded-lg border border-line bg-[#0d0e11] p-3">
               <ServiceRow endpoint={API_BASE_URL} name="StoryDriver backend" ok={diagnostics?.backend === "ok"} />
               <ServiceRow endpoint={diagnostics?.lm_studio?.base_url || "http://localhost:1234"} name="LM Studio" ok={Boolean(diagnostics?.lm_studio?.reachable)} />
@@ -648,10 +599,11 @@ export default function SettingsDrawer({ onClose, onOpenModels }) {
                   />
                   Browser fallback
                 </label>
-                <Status ok={Boolean(ttsStatus?.kokoro?.reachable)}>{ttsStatus?.kokoro?.reachable ? "Ready" : "Unavailable"}</Status>
+                <Status ok={activeProvider === "browser" || Boolean(ttsStatus?.kokoro?.reachable)}>{activeProvider === "browser" ? "Device voice" : ttsStatus?.kokoro?.reachable ? "Ready" : ttsStatus?.startup?.status === "starting" ? "Starting..." : "Unavailable"}</Status>
               </div>
               {ttsVoicePreview?.error ? <p className="text-xs text-ember">{ttsVoicePreview.error}</p> : null}
-              <CustomVoiceLibrary
+              <details className="border-t border-line pt-4"><summary className="cursor-pointer text-sm font-medium">Custom voices and diagnostics</summary><div className="mt-4 grid gap-4">
+              {providerRegistry.high_quality_local?.available ? <CustomVoiceLibrary
                 onPreview={(voice) => previewTTSVoice({ profileId: voice.profile_id, voice: voice.selection_id })}
                 onRefresh={fetchTTSStatus}
                 onUse={(voice) => updateTTS({
@@ -663,17 +615,18 @@ export default function SettingsDrawer({ onClose, onOpenModels }) {
                   tts_speed: 1,
                 })}
                 voices={ttsStatus?.custom_voices || EMPTY_ARRAY}
-              />
+              /> : null}
               <VoiceComparisonLab profiles={voiceProfiles} saveTTSSettings={saveTTSSettings} />
               <NarrationDeviceDiagnostics
                 backendReachable={diagnostics?.backend === "ok"}
                 narration={narration}
                 ttsStatus={ttsStatus}
               />
+              </div></details>
             </div>
           </SettingSection> : null}
 
-          {showCategory("diagnostics", "storage database generated media deletion jobs") ? <SettingSection icon={Database} title="Storage">
+          {showCategory("app", "storage database generated media deletion jobs") ? <SettingSection icon={Database} title="Storage">
             <div className="grid gap-2 rounded-lg border border-line bg-[#0d0e11] p-3 text-sm">
               <div className="flex items-center justify-between gap-3"><span className="text-muted">Database</span><span className="text-zinc-200">{formatBytes(databaseBytes)}</span></div>
               <div className="flex items-center justify-between gap-3"><span className="text-muted">Generated media</span><span className="text-zinc-200">{formatBytes(generatedMedia.total_bytes ?? generatedMedia.bytes)}</span></div>
@@ -690,17 +643,7 @@ export default function SettingsDrawer({ onClose, onOpenModels }) {
             </div>
           </SettingSection> : null}
 
-          {showCategory("about", "version architecture webview desktop license") ? (
-            <SettingSection icon={ShieldCheck} title="About">
-              <div className="grid gap-2 rounded-lg border border-line bg-[#0d0e11] p-3 text-sm">
-                <div className="flex items-center justify-between gap-3"><span className="text-muted">StoryDriver</span><span className="text-zinc-200">1.0.0 RC</span></div>
-                <div className="flex items-center justify-between gap-3"><span className="text-muted">Desktop shell</span><span className="text-zinc-200">Windows WebView2</span></div>
-                <div className="flex items-center justify-between gap-3"><span className="text-muted">Runtime</span><span className="text-zinc-200">Local only</span></div>
-              </div>
-            </SettingSection>
-          ) : null}
-
-          {settingsSearch && !SETTINGS_CATEGORIES.some(([id]) => showCategory(id)) ? (
+          {settingsSearch && !SETTINGS_CATEGORIES.some(([id]) => showCategory(id, "model provider gguf llama lm studio prompt length sampling preset task temperature desktop version lan tray paths kokoro setup data theme reading font scale composer motion background workspace image tts qwen voice pronunciation breathing playback storage database generated media deletion jobs")) ? (
             <p className="py-8 text-center text-sm text-muted">No matching settings.</p>
           ) : null}
         </div>

@@ -47,6 +47,7 @@ export default function TopBar({
     /^untitled(?:\s+\d+)?$/.test(normalizedTitle);
   const titleStatus = activeSession?.auto_title_status || "skipped";
   const kokoroReady = Boolean(ttsStatus?.kokoro?.reachable);
+  const kokoroStarting = !kokoroReady && (!ttsStatus || ttsStatus.startup?.status === "starting");
   const titleIsUserSet = activeSession?.title_source === "user_set" || titleStatus === "user_set";
   const showTitling = Boolean(activeSession && hasGenericTitle && titleStatus === "pending" && !titleIsUserSet);
   const canRetryTitle = Boolean(
@@ -212,8 +213,8 @@ export default function TopBar({
               </span>
             )}
             <span className={`inline-flex items-center gap-1.5 ${kokoroReady ? "text-moss" : "text-muted"}`}>
-              <LoaderCircle className={kokoroReady ? "" : "animate-spin"} size={13} />
-              {kokoroReady ? "Narration ready" : "Narration starting"}
+              <LoaderCircle className={kokoroStarting ? "animate-spin" : ""} size={13} />
+              {kokoroReady ? "Narration ready" : kokoroStarting ? "Narration starting" : "Narration offline"}
             </span>
             {activeSession ? (
               <>
@@ -243,17 +244,6 @@ export default function TopBar({
           whileTap={{ scale: 0.96 }}
         >
           <BookOpenText size={18} />
-        </motion.button>
-        <motion.button
-          aria-label="Model Settings"
-          className="sd-icon-button grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-line bg-panel text-zinc-200 transition hover:border-zinc-600"
-          onClick={onModelSettings}
-          title="Model Settings"
-          type="button"
-          whileHover={{ y: -1 }}
-          whileTap={{ scale: 0.96 }}
-        >
-          <SlidersHorizontal size={18} />
         </motion.button>
         <motion.button
           aria-label="Settings"

@@ -8,13 +8,16 @@ SetCompressor /SOLID lzma
 !include "LogicLib.nsh"
 !include "nsDialogs.nsh"
 !include "StrFunc.nsh"
+!include "x64.nsh"
 ${StrRep}
 
 !ifndef ROOT_DIR
 !define ROOT_DIR "${__FILEDIR__}\.."
 !endif
 !define PRODUCT_NAME "StoryDriver"
-!define PRODUCT_VERSION "1.0.0-rc.1"
+!ifndef PRODUCT_VERSION
+!define PRODUCT_VERSION "1.0.0"
+!endif
 !define PRODUCT_PUBLISHER "StoryDriver"
 !define PRODUCT_REGKEY "Software\StoryDriver"
 !define UNINSTALL_REGKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\StoryDriver"
@@ -22,7 +25,7 @@ ${StrRep}
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
 OutFile "${ROOT_DIR}\release\StoryDriver-Setup-x64.exe"
-InstallDir "D:\StoryDriverApp"
+InstallDir "$LOCALAPPDATA\Programs\StoryDriver"
 InstallDirRegKey HKCU "${PRODUCT_REGKEY}" "InstallRoot"
 Icon "${ROOT_DIR}\assets\desktop\storydriver.ico"
 UninstallIcon "${ROOT_DIR}\assets\desktop\storydriver.ico"
@@ -31,11 +34,12 @@ BrandingText "StoryDriver - local and private"
 Var DataRoot
 Var DataRootJson
 Var DataRootField
+Var BrowseButton
 Var LanEnabled
 Var LanCheckbox
 Var DesktopShortcut
 Var DesktopCheckbox
-Var RemoveData
+Var NoShortcuts
 
 !define MUI_ABORTWARNING
 !define MUI_FINISHPAGE_RUN "$INSTDIR\StoryDriver.exe"
@@ -52,9 +56,20 @@ Page custom DataOptionsCreate DataOptionsLeave
 !insertmacro MUI_LANGUAGE "English"
 
 Function .onInit
-  StrCpy $DataRoot "D:\StoryDriverData"
+  ${IfNot} ${RunningX64}
+    MessageBox MB_ICONSTOP "StoryDriver requires 64-bit Windows 10 or Windows 11."
+    Abort
+  ${EndIf}
+  System::Call 'kernel32::OpenMutexW(i 0x100000, i 0, w "Local\StoryDriver.Desktop.Instance") p .r0'
+  ${If} $0 != 0
+    System::Call 'kernel32::CloseHandle(p r0)'
+    MessageBox MB_ICONSTOP "Quit StoryDriver from its tray menu before installing an update."
+    Abort
+  ${EndIf}
+  StrCpy $DataRoot "$LOCALAPPDATA\StoryDriver"
   StrCpy $LanEnabled "false"
   StrCpy $DesktopShortcut "false"
+  StrCpy $NoShortcuts "false"
 
   ReadRegStr $0 HKCU "${PRODUCT_REGKEY}" "DataRoot"
   ${If} $0 != ""
@@ -80,9 +95,16 @@ Function .onInit
   ${If} $1 == "1"
     StrCpy $DesktopShortcut "true"
   ${EndIf}
+  ClearErrors
+  ${GetOptions} $0 "/NOSHORTCUTS" $1
+  ${IfNot} ${Errors}
+    StrCpy $NoShortcuts "true"
+  ${EndIf}
 FunctionEnd
 
 Function DataOptionsCreate
+  IfFileExists "$INSTDIR\storydriver.config.json" 0 +2
+    Abort
   nsDialogs::Create 1018
   Pop $0
   ${If} $0 == error
@@ -92,8 +114,11 @@ Function DataOptionsCreate
   !insertmacro MUI_HEADER_TEXT "Local data" "Choose where StoryDriver stores writing and generated media."
   ${NSD_CreateLabel} 0 0 100% 26u "This folder is separate from the application so upgrades and uninstall can preserve it."
   Pop $0
-  ${NSD_CreateText} 0 32u 100% 13u "$DataRoot"
+  ${NSD_CreateText} 0 32u 78% 13u "$DataRoot"
   Pop $DataRootField
+  ${NSD_CreateBrowseButton} 80% 31u 20% 15u "Browse..."
+  Pop $BrowseButton
+  ${NSD_OnClick} $BrowseButton BrowseDataFolder
   ${NSD_CreateCheckbox} 0 62u 100% 12u "Allow phone access on the private LAN"
   Pop $LanCheckbox
   ${If} $LanEnabled == "true"
@@ -107,6 +132,14 @@ Function DataOptionsCreate
   ${NSD_CreateLabel} 0 109u 100% 28u "StoryDriver never enables port forwarding. Windows may request private-network firewall permission when LAN access is first used."
   Pop $0
   nsDialogs::Show
+FunctionEnd
+
+Function BrowseDataFolder
+  nsDialogs::SelectFolderDialog "Choose the StoryDriver data folder" "$DataRoot"
+  Pop $0
+  ${If} $0 != error
+    ${NSD_SetText} $DataRootField "$0"
+  ${EndIf}
 FunctionEnd
 
 Function DataOptionsLeave
@@ -132,6 +165,25 @@ FunctionEnd
 Section "StoryDriver" SEC_CORE
   SectionIn RO
   SetShellVarContext current
+  GetFullPathName $INSTDIR "$INSTDIR"
+  GetFullPathName $DataRoot "$DataRoot"
+  ${GetRoot} "$INSTDIR" $0
+  ${If} $INSTDIR == "$0\"
+  ${OrIf} $INSTDIR == "$WINDIR"
+  ${OrIf} $INSTDIR == "$PROGRAMFILES"
+  ${OrIf} $INSTDIR == "$LOCALAPPDATA"
+  ${OrIf} $INSTDIR == "$PROFILE"
+  ${OrIf} $INSTDIR == "$DataRoot"
+    MessageBox MB_ICONSTOP "Choose a dedicated StoryDriver application folder, separate from your data folder."
+    Abort
+  ${EndIf}
+  ${GetRoot} "$DataRoot" $0
+  ${If} $DataRoot == "$0\"
+  ${OrIf} $DataRoot == "$WINDIR"
+  ${OrIf} $DataRoot == "$PROFILE"
+    MessageBox MB_ICONSTOP "Choose a dedicated StoryDriver data folder, not a drive or Windows folder."
+    Abort
+  ${EndIf}
   SetOutPath "$INSTDIR"
   File /r "${PAYLOAD_DIR}\*.*"
 
@@ -142,6 +194,7 @@ Section "StoryDriver" SEC_CORE
   CreateDirectory "$DataRoot\temp"
 
   ${StrRep} $DataRootJson $DataRoot "\" "/"
+  IfFileExists "$INSTDIR\storydriver.config.json" config_exists
   FileOpen $0 "$INSTDIR\storydriver.config.json" w
   FileWrite $0 "{$\r$\n"
   FileWrite $0 "  $\"dataRoot$\": $\"$DataRootJson$\",$\r$\n"
@@ -150,8 +203,10 @@ Section "StoryDriver" SEC_CORE
   FileWrite $0 "  $\"minimizeToTray$\": false$\r$\n"
   FileWrite $0 "}$\r$\n"
   FileClose $0
+  config_exists:
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
+  ${If} $NoShortcuts != "true"
   CreateDirectory "$SMPROGRAMS\StoryDriver"
   CreateShortcut "$SMPROGRAMS\StoryDriver\StoryDriver.lnk" "$INSTDIR\StoryDriver.exe" "" "$INSTDIR\StoryDriver.exe" 0
   CreateShortcut "$SMPROGRAMS\StoryDriver\Uninstall StoryDriver.lnk" "$INSTDIR\Uninstall.exe"
@@ -160,6 +215,8 @@ Section "StoryDriver" SEC_CORE
   ${Else}
     Delete "$DESKTOP\StoryDriver.lnk"
   ${EndIf}
+  ${EndIf}
+  WriteRegStr HKCU "${PRODUCT_REGKEY}" "NoShortcuts" "$NoShortcuts"
 
   WriteRegStr HKCU "${PRODUCT_REGKEY}" "InstallRoot" "$INSTDIR"
   WriteRegStr HKCU "${PRODUCT_REGKEY}" "DataRoot" "$DataRoot"
@@ -170,36 +227,33 @@ Section "StoryDriver" SEC_CORE
   WriteRegStr HKCU "${UNINSTALL_REGKEY}" "DisplayIcon" "$INSTDIR\StoryDriver.exe"
   WriteRegStr HKCU "${UNINSTALL_REGKEY}" "InstallLocation" "$INSTDIR"
   WriteRegStr HKCU "${UNINSTALL_REGKEY}" "UninstallString" '$\"$INSTDIR\Uninstall.exe$\"'
-  WriteRegDWORD HKCU "${UNINSTALL_REGKEY}" "NoModify" 0
-  WriteRegDWORD HKCU "${UNINSTALL_REGKEY}" "NoRepair" 0
+  WriteRegDWORD HKCU "${UNINSTALL_REGKEY}" "NoModify" 1
+  WriteRegDWORD HKCU "${UNINSTALL_REGKEY}" "NoRepair" 1
 SectionEnd
 
 Function un.onInit
-  StrCpy $RemoveData "false"
-  ReadRegStr $DataRoot HKCU "${PRODUCT_REGKEY}" "DataRoot"
-  ${GetParameters} $0
-  ${GetOptions} $0 "/REMOVEDATA=" $1
-  ${If} $1 == "1"
-    StrCpy $RemoveData "true"
-  ${ElseIfNot} ${Silent}
-    MessageBox MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 "Remove StoryDriver user data from:$\r$\n$DataRoot$\r$\n$\r$\nChoose No to preserve stories, voices, settings, and generated narration." IDNO +2
-    StrCpy $RemoveData "true"
+  System::Call 'kernel32::OpenMutexW(i 0x100000, i 0, w "Local\StoryDriver.Desktop.Instance") p .r0'
+  ${If} $0 != 0
+    System::Call 'kernel32::CloseHandle(p r0)'
+    MessageBox MB_ICONSTOP "Quit StoryDriver from its tray menu before uninstalling."
+    Abort
   ${EndIf}
 FunctionEnd
 
 Section "Uninstall"
   SetShellVarContext current
+  ReadRegStr $NoShortcuts HKCU "${PRODUCT_REGKEY}" "NoShortcuts"
+  ${If} $NoShortcuts != "true"
   Delete "$DESKTOP\StoryDriver.lnk"
-  RMDir /r "$SMPROGRAMS\StoryDriver"
-
-  ${If} $RemoveData == "true"
-    StrLen $0 $DataRoot
-    ${If} $0 > 3
-      RMDir /r "$DataRoot"
-    ${EndIf}
+  Delete "$SMPROGRAMS\StoryDriver\StoryDriver.lnk"
+  Delete "$SMPROGRAMS\StoryDriver\Uninstall StoryDriver.lnk"
+  RMDir "$SMPROGRAMS\StoryDriver"
   ${EndIf}
 
   DeleteRegKey HKCU "${UNINSTALL_REGKEY}"
   DeleteRegKey HKCU "${PRODUCT_REGKEY}"
-  RMDir /r "$INSTDIR"
+  !include "${ROOT_DIR}\build\native\uninstall-files.nsh"
+  Delete "$INSTDIR\storydriver.config.json"
+  Delete "$INSTDIR\Uninstall.exe"
+  RMDir "$INSTDIR"
 SectionEnd

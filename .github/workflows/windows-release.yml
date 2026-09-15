@@ -38,9 +38,13 @@ jobs:
       - name: Prepare isolated build tools
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
           python -m venv tools/packaging/.venv
           tools/packaging/.venv/Scripts/python.exe -m pip install --upgrade pip
           tools/packaging/.venv/Scripts/python.exe -m pip install -r backend/requirements.txt pyinstaller==6.22.2
+          python -m venv tools/narration/.venv
+          tools/narration/.venv/Scripts/python.exe -m pip install -r apps/narration/requirements.lock.txt
           npm ci --prefix frontend
 
           New-Item -ItemType Directory -Force .tools/downloads, runtimes/llama.cpp | Out-Null
@@ -55,17 +59,11 @@ jobs:
       - name: Non-model contracts
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
           tools/packaging/.venv/Scripts/python.exe -m compileall backend/app apps/backend
-          tools/packaging/.venv/Scripts/python.exe scripts/prose_v3_static_test.py
-          tools/packaging/.venv/Scripts/python.exe scripts/scene_contract_blocking_static_test.py
-          tools/packaging/.venv/Scripts/python.exe scripts/story_foundation_static_test.py
-          tools/packaging/.venv/Scripts/python.exe scripts/deliberate_pipeline_static_test.py
-          tools/packaging/.venv/Scripts/python.exe scripts/tests/relationship_location_accuracy_test.py
-          tools/packaging/.venv/Scripts/python.exe scripts/tests/native_desktop_contract_test.py
+          tools/packaging/.venv/Scripts/python.exe scripts/tests/run_release_checks.py
           tools/packaging/.venv/Scripts/python.exe scripts/tests/publish_tree_privacy_test.py
-          node scripts/tests/qwen_premium_plan_test.mjs
-          node scripts/tests/tts_buffered_seek_test.mjs
-          node scripts/tts_follow_sync_static_test.mjs
 
       - name: Build installer and portable package
         shell: pwsh
@@ -80,6 +78,7 @@ jobs:
             release/StoryDriver-Portable-x64.zip
             release/SHA256SUMS.txt
             release/RELEASE_NOTES.md
+            release/StoryDriver-ThirdParty-Sources.zip
 
       - name: Create GitHub release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -87,4 +86,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create $env:GITHUB_REF_NAME --title "StoryDriver $env:GITHUB_REF_NAME" --prerelease --notes-file release/RELEASE_NOTES.md release/StoryDriver-Setup-x64.exe release/StoryDriver-Portable-x64.zip release/SHA256SUMS.txt release/RELEASE_NOTES.md
+          gh release view $env:GITHUB_REF_NAME *> $null
+          if ($LASTEXITCODE -eq 0) { exit 0 }
+          gh release create $env:GITHUB_REF_NAME --title "StoryDriver $env:GITHUB_REF_NAME" --notes-file release/RELEASE_NOTES.md release/StoryDriver-Setup-x64.exe release/StoryDriver-Portable-x64.zip release/StoryDriver-ThirdParty-Sources.zip release/SHA256SUMS.txt release/RELEASE_NOTES.md
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

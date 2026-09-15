@@ -81,7 +81,10 @@ async def preview_tts(payload: TTSPreviewRequest) -> TTSPreviewResponse:
 
 @router.get("/status")
 async def tts_status() -> dict:
-    return await TTSService().status()
+    from app.services.service_supervisor import service_supervisor
+    result = await TTSService().status()
+    result["startup"] = service_supervisor.status()["services"]["kokoro"]
+    return result
 
 
 @router.get("/voices")

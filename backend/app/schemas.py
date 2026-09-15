@@ -97,7 +97,7 @@ class ProsePromptPreviewRequest(BaseModel):
     director_note: str = Field(default="", max_length=12000)
     mode: Literal["continue", "regenerate", "rewrite", "revise"] = "continue"
     target_scene_id: str | None = None
-    system_prompt_override: str | None = Field(default=None, max_length=12000)
+    system_prompt_override: str | None = None
     task_notes_override: str | None = Field(default=None, max_length=4000)
     prose_prompt_mode_override: Literal["standard", "direct"] | None = None
     writing_process_mode_override: Literal["fast_direct", "deliberate", "deep_chapter"] | None = None
@@ -185,22 +185,22 @@ class ModelSettings(BaseModel):
     model: str = ""
     model_path: str | None = Field(default=None, max_length=1200)
     allow_remote_provider: bool = False
-    llama_context_length: int | None = Field(default=None, ge=512, le=1048576)
-    llama_gpu_layers: int | None = Field(default=None, ge=0, le=10000)
-    llama_threads: int | None = Field(default=None, ge=1, le=512)
-    llama_batch_size: int | None = Field(default=None, ge=32, le=65536)
+    llama_context_length: int | None = Field(default=None, ge=2048, le=131072)
+    llama_gpu_layers: int | None = Field(default=None, ge=-1, le=999)
+    llama_threads: int | None = Field(default=None, ge=1, le=256)
+    llama_batch_size: int | None = Field(default=None, ge=32, le=8192)
     llama_flash_attention: bool | None = None
-    llama_parallel_slots: int | None = Field(default=None, ge=1, le=64)
+    llama_parallel_slots: int | None = Field(default=None, ge=1, le=8)
     system_prompt: str
-    temperature: float = 0.8
-    top_p: float = 0.95
-    max_tokens: int = 1200
+    temperature: float = Field(default=0.8, ge=0, le=2)
+    top_p: float = Field(default=0.95, ge=0, le=1)
+    max_tokens: int = Field(default=8000, ge=1)
     stop_strings: str = ""
-    top_k: int = 40
-    min_p: float = 0.05
-    repeat_penalty: float = 1.1
-    presence_penalty: float = 0.0
-    frequency_penalty: float = 0.0
+    top_k: int = Field(default=40, ge=0)
+    min_p: float = Field(default=0.05, ge=0, le=1)
+    repeat_penalty: float = Field(default=1.1, ge=0, le=2)
+    presence_penalty: float = Field(default=0, ge=-2, le=2)
+    frequency_penalty: float = Field(default=0, ge=-2, le=2)
     seed: int | None = None
     streaming: bool = True
     writing_length_mode: Literal["beat", "scene", "chapter", "custom"] = "scene"
@@ -325,13 +325,13 @@ class TaskModelProfilesResponse(BaseModel):
 
 class ModelPresetCreate(BaseModel):
     name: str = Field(min_length=1, max_length=80)
-    system_prompt: str = Field(default="", max_length=12000)
+    system_prompt: str = ""
     settings: dict[str, Any] = Field(default_factory=dict)
 
 
 class ModelPresetUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=80)
-    system_prompt: str | None = Field(default=None, max_length=12000)
+    system_prompt: str | None = None
     settings: dict[str, Any] | None = None
 
 

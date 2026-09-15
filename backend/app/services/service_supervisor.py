@@ -13,7 +13,7 @@ from urllib.parse import urlparse
 
 import httpx
 
-from app.config import DATA_DIR, settings
+from app.config import BASE_DIR, DATA_DIR, settings
 
 
 def utc_now() -> str:
@@ -133,16 +133,16 @@ class StoryDriverServiceSupervisor:
             log_path.parent.mkdir(parents=True, exist_ok=True)
             creationflags, startupinfo = hidden_process_flags()
             with log_path.open("ab", buffering=0) as log:
-                process = subprocess.Popen(
-                    command,
-                    cwd=str(working_dir),
-                    env=environment,
-                    stdin=subprocess.DEVNULL,
-                    stdout=log,
-                    stderr=subprocess.STDOUT,
-                    creationflags=creationflags,
-                    startupinfo=startupinfo,
-                )
+                try:
+                    process = subprocess.Popen(
+                        command, cwd=str(working_dir), env=environment,
+                        stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
+                        creationflags=creationflags, startupinfo=startupinfo,
+                    )
+                except OSError as error:
+                    state.status = "error"
+                    state.error = f"Kokoro could not start: {error}"
+                    return asdict(state)
             self._processes["kokoro"] = process
             state.status = "starting"
             state.reachable = False
@@ -155,7 +155,11 @@ class StoryDriverServiceSupervisor:
             return asdict(state)
 
     def _kokoro_command(self) -> tuple[list[str], Path, dict[str, str]]:
-        working_dir = Path(settings.kokoro_working_dir or r"D:\Kokoro-FastAPI").resolve()
+        bundled = BASE_DIR / "runtimes" / "kokoro" / "StoryDriverNarration.exe"
+        if bundled.is_file() and not settings.kokoro_working_dir and not settings.kokoro_python_exe:
+            port = urlparse(settings.kokoro_base_url).port or 8880
+            return [str(bundled), "--port", str(port)], bundled.parent, os.environ.copy()
+        working_dir = Path(settings.kokoro_working_dir or str(BASE_DIR / "runtimes" / "Kokoro-FastAPI")).resolve()
         python_candidates = [
             Path(settings.kokoro_python_exe).resolve() if settings.kokoro_python_exe else None,
             working_dir / ".venv_storydriver_py312" / "Scripts" / "python.exe",
@@ -204,10 +208,11 @@ class StoryDriverServiceSupervisor:
 
     def _kokoro_reachable(self) -> bool:
         try:
-            with httpx.Client(timeout=0.45) as client:
+            with httpx.Client(timeout=0.6, trust_env=False) as client:
                 response = client.get(f"{settings.kokoro_base_url.rstrip('/')}/health")
-                return response.status_code < 500
-        except httpx.HTTPError:
+                payload = response.json() if response.status_code == 200 else {}
+                return response.status_code == 200 and isinstance(payload, dict) and payload.get("status") in {"healthy", "ok"}
+        except (httpx.HTTPError, ValueError):
             return False
 
     def _refresh_kokoro(self) -> ManagedServiceState:
@@ -222,7 +227,10 @@ class StoryDriverServiceSupervisor:
             else:
                 process = self._processes.get("kokoro")
                 if process and process.poll() is None:
-                    state.status = "starting"
+                    elapsed = (datetime.now(timezone.utc) - datetime.fromisoformat(state.started_at)).total_seconds() if state.started_at else 0
+                    state.status = "error" if elapsed > 120 else "starting"
+                    if elapsed > 120:
+                        state.error = "Kokoro has not become ready after 120 seconds. Check its paths and log, then restart narration."
                 elif state.status != "error":
                     state.status = "stopped"
                     state.pid = None
@@ -245,7 +253,11 @@ class StoryDriverServiceSupervisor:
             if not state.owned or process is None:
                 return {"ok": True, "stopped": False, "external_preserved": state.reachable}
             if process.poll() is None:
-                process.terminate()
+                if os.name == "nt":
+                    flags, startup = hidden_process_flags()
+                    subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"], capture_output=True, timeout=10, creationflags=flags, startupinfo=startup, check=False)
+                else:
+                    process.terminate()
                 try:
                     process.wait(timeout=8)
                 except subprocess.TimeoutExpired:

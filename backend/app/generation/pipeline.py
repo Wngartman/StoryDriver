@@ -231,54 +231,8 @@ def compact_sentence_parts(text: str, limit: int = 8) -> list[str]:
 
 
 def director_named_characters(director_note: str) -> list[str]:
-    exclusions = {
-        "Add",
-        "Adult",
-        "After",
-        "Before",
-        "Chapter",
-        "Continue",
-        "Create",
-        "Director",
-        "Each",
-        "First",
-        "Focus",
-        "Keep",
-        "Let",
-        "Long",
-        "Make",
-        "Medieval",
-        "Modern",
-        "No",
-        "Opening",
-        "Regenerate",
-        "Relationship",
-        "Rewrite",
-        "Revise",
-        "Scene",
-        "Sci",
-        "Science",
-        "Show",
-        "Story",
-        "Tactical",
-        "The",
-        "They",
-        "Tomorrow",
-        "Tonight",
-        "Use",
-        "Years",
-        "Write",
-    }
-    names: list[str] = []
-    for match in re.finditer(r"\b[A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})?\b", director_note or ""):
-        name = match.group(0).strip()
-        name = re.sub(r"^(?:Adult|Young|Older|Younger|Main|Major|Primary)\s+", "", name).strip()
-        first = name.split()[0]
-        if first in exclusions:
-            continue
-        if name not in names and first not in names:
-            names.append(name)
-    return names[:10]
+    from app.memory.foundation import director_named_characters as extract_names
+    return extract_names(director_note)
 
 
 def director_closes_cast(director_note: str, named_characters: list[str]) -> bool:
@@ -287,7 +241,7 @@ def director_closes_cast(director_note: str, named_characters: list[str]) -> boo
         named_characters
         and (
             re.search(r"\b(?:scene|story|chapter)\s+between\b", note)
-            or re.search(r"\b(?:only|just)\s+(?:the\s+)?(?:two|three)\b", note)
+            or re.search(r"\b(?:only|just)\s+(?:the\s+)?(?:two|three)\s+(?:adults?|women|men|people|characters?|friends?|siblings?)\b", note)
             or re.search(r"\bno\s+(?:other|additional|new)\s+(?:people|persons|characters)\b", note)
         )
     )

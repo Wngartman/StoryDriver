@@ -51,10 +51,12 @@ internal sealed class BackendProcessHost : IDisposable
             startInfo.Environment[key] = value;
         }
 
+        _job?.Dispose();
+        _process?.Dispose();
         _process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
         _process.OutputDataReceived += (_, e) => AppendLog(e.Data);
         _process.ErrorDataReceived += (_, e) => AppendLog(e.Data);
-        _process.Exited += (_, _) => Exited?.Invoke(this, _process.ExitCode);
+        _process.Exited += (sender, _) => Exited?.Invoke(this, ((Process)sender!).ExitCode);
         if (!_process.Start())
         {
             throw new InvalidOperationException("Windows did not start the StoryDriver backend.");
@@ -72,6 +74,8 @@ internal sealed class BackendProcessHost : IDisposable
         var process = _process;
         if (process is null || process.HasExited)
         {
+            _job?.Dispose();
+            _job = null;
             return;
         }
         try
@@ -98,7 +102,16 @@ internal sealed class BackendProcessHost : IDisposable
         }
         lock (_logLock)
         {
-            File.AppendAllText(_logPath, line + Environment.NewLine);
+            try
+            {
+                if (File.Exists(_logPath) && new FileInfo(_logPath).Length > 2_000_000)
+                    File.Move(_logPath, _logPath + ".previous", overwrite: true);
+                File.AppendAllText(_logPath, line + Environment.NewLine);
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                Debug.WriteLine(error.Message);
+            }
         }
     }
 

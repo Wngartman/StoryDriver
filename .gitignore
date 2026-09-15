@@ -17,6 +17,9 @@ tools/packaging/.venv/
 apps/desktop/bin/
 apps/desktop/obj/
 runtimes/llama.cpp/
+runtimes/kokoro/
+tools/narration/.venv/
+third_party/sources/
 
 # Environment
 .env

@@ -51,21 +51,15 @@ class KokoroClient:
         try:
             async with httpx.AsyncClient(timeout=2.0) as client:
                 response = await client.get(f"{self.base_url}/health")
-                if response.status_code < 500:
+                payload = response.json() if response.status_code == 200 else {}
+                if response.status_code == 200 and isinstance(payload, dict) and payload.get("status") in {"healthy", "ok"}:
                     return True, None
-        except httpx.HTTPError as error:
+        except (httpx.HTTPError, ValueError):
             first_error = f"Kokoro-FastAPI is not running at {self.base_url}."
         else:
             first_error = None
 
-        try:
-            async with httpx.AsyncClient(timeout=2.0) as client:
-                response = await client.get(f"{self.base_url}/docs")
-                if response.status_code < 500:
-                    return True, None
-                return False, f"HTTP {response.status_code}"
-        except httpx.HTTPError as error:
-            return False, first_error or f"Kokoro-FastAPI is not running at {self.base_url}."
+        return False, first_error or f"No healthy Kokoro service at {self.base_url}."
 
     async def supported_speech_options(self) -> list[str]:
         known_options = {"temperature", "top_p", "exaggeration", "style", "cfg"}

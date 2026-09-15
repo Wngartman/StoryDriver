@@ -15,7 +15,7 @@ checks = {
     "single_instance": "StoryDriver.Desktop.Instance" in (ROOT / "apps" / "desktop" / "App.xaml.cs").read_text(encoding="utf-8"),
     "hidden_backend": "CreateNoWindow = true" in window.replace("\r", "") or "CreateNoWindow = true" in (ROOT / "apps" / "desktop" / "BackendProcessHost.cs").read_text(encoding="utf-8"),
     "process_tree_cleanup": "JobObjectLimitKillOnJobClose" in (ROOT / "apps" / "desktop" / "BackendProcessHost.cs").read_text(encoding="utf-8"),
-    "d_data_root": "StoryDriverData" in configuration and "portable.marker" in configuration,
+    "portable_and_installed_data_roots": "LocalApplicationData" in configuration and "portable.marker" in configuration,
     "loading_artwork": "storydriver-loading.png" in project and "LoadingArtwork" in window,
     "kokoro_background_start": "STORYDRIVER_AUTO_START_KOKORO" in configuration,
     "hidden_kokoro": "CREATE_NO_WINDOW" in supervisor and "shell=True" not in supervisor,

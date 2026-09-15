@@ -235,17 +235,6 @@ export default function Sidebar({
         </div>
       </div>
 
-      <div className={`border-t border-line p-3 ${collapsed ? "grid place-items-center" : ""}`}>
-        <button
-          className={`sd-icon-button flex min-h-11 items-center rounded-lg border border-line bg-panelSoft text-zinc-200 ${collapsed ? "w-11 justify-center" : "w-full gap-2 px-3"}`}
-          onClick={onSettings}
-          title="Settings"
-          type="button"
-        >
-          <Settings size={18} />
-          {!collapsed ? <span className="text-sm font-medium">Settings</span> : <span className="sr-only">Settings</span>}
-        </button>
-      </div>
     </nav>
   );
 }

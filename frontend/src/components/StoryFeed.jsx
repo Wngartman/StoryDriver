@@ -604,21 +604,18 @@ function StoryFeed({ activeSession, scenes }) {
         {!activeSession ? (
           <motion.div
             animate={{ opacity: 1, y: 0 }}
-            className="sd-empty-state mt-12 rounded-xl border border-line bg-panel/76 p-7 shadow-glow"
+            className="sd-empty-state mt-12 py-7"
             initial={{ opacity: 0, y: 12 }}
           >
             <BrandMark className="mb-5" label="StoryDriver emblem" size="lg" />
-            <h2 className="text-xl font-semibold text-zinc-100">Choose or create a story to begin.</h2>
-            <p className="mt-2 text-sm leading-6 text-muted">
-              Use New Story in the sidebar, then write the first director note in the bottom bar.
-            </p>
+            <h2 className="text-2xl font-semibold text-zinc-100">StoryDriver</h2>
           </motion.div>
         ) : null}
 
         {activeSession && scenes.length === 0 && !continueStreaming ? (
           <motion.div
             animate={{ opacity: 1, y: 0 }}
-            className="sd-empty-state mt-6 rounded-xl border border-line bg-panel/76 p-6 shadow-glow"
+            className="sd-empty-state mt-6 py-6"
             initial={{ opacity: 0, y: 12 }}
           >
             <div className="mb-5 flex items-center gap-3">

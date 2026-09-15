@@ -20,7 +20,7 @@ FORBIDDEN_PARTS = {
     "voices",
     "webview2",
 }
-FORBIDDEN_SUFFIXES = {".db", ".gguf", ".safetensors", ".wav", ".mp3", ".flac", ".key", ".pfx"}
+FORBIDDEN_SUFFIXES = {".db", ".gguf", ".onnx", ".safetensors", ".wav", ".mp3", ".flac", ".key", ".pfx"}
 ALLOWED_MEDIA = {
     "assets/desktop/storydriver-loading.png",
     "assets/desktop/storydriver.ico",
@@ -35,7 +35,7 @@ SECRET_PATTERNS = (
 
 def tracked_files() -> list[Path]:
     result = subprocess.run(
-        ["git", "-c", "safe.directory=D:/StoryDriver", "ls-files", "-z"],
+        ["git", "-c", f"safe.directory={ROOT.as_posix()}", "ls-files", "-z"],
         cwd=ROOT,
         check=True,
         capture_output=True,

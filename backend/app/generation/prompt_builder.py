@@ -89,6 +89,9 @@ def requested_chapter_length(director_note: str) -> bool:
 
 
 def explicit_word_target(director_note: str) -> tuple[int, int] | None:
+    # Normalize thousands separators before matching, never a trailing group such as 200 in 2,200.
+    director_note = re.sub(r"(?<=\d),(?=\d{3}(?:\D|$))", "", director_note)
+    director_note = re.sub(r"(?<=\d)[-\u2013](?=words?\b)", " ", director_note, flags=re.I)
     for pattern in WORD_RANGE_PATTERNS:
         match = pattern.search(director_note)
         if not match:

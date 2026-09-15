@@ -268,8 +268,8 @@ LEGACY_DEFAULT_TASK_NOTES: dict[str, set[str]] = {
 
 DEFAULT_MODEL_SETTINGS: dict[str, Any] = {
     "active_preset_id": None,
-    "provider": "lm_studio",
-    "provider_url": settings.lm_studio_base_url,
+    "provider": "llama_cpp",
+    "provider_url": "http://127.0.0.1:12345/v1",
     "lm_studio_url": settings.lm_studio_base_url,
     "model": "",
     "model_path": None,
@@ -330,7 +330,7 @@ DEFAULT_TTS_SETTINGS: dict[str, Any] = {
     "tts_provider": "kokoro",
     "tts_quality_mode": "balanced",
     "tts_fallback_provider": "kokoro",
-    "high_quality_local_enabled": True,
+    "high_quality_local_enabled": False,
     "tts_speed": 0.95,
     "tts_voice": None,
     "tts_voice_profile_id": "natural_female_narrator",
@@ -557,7 +557,9 @@ def normalize_task_model_profile(task_type: str, data: dict[str, Any] | None = N
 def merged_model_settings(value_json: str | None = None) -> dict[str, Any]:
     data = json.loads(value_json or "{}")
     merged = {**DEFAULT_MODEL_SETTINGS, **data}
-    if "provider_url" not in data:
+    if merged.get("provider") == "llama_cpp":
+        merged["provider_url"] = "http://127.0.0.1:12345/v1"
+    elif "provider_url" not in data:
         merged["provider_url"] = data.get("lm_studio_url") or settings.lm_studio_base_url
     # StoryDriver has one normal writing path. These compatibility fields remain
     # in the API payload so older local clients can load settings without gaining

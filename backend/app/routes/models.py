@@ -17,6 +17,8 @@ router = APIRouter(tags=["models"])
 async def list_models() -> list[ModelRead]:
     model_settings = load_model_settings(resolve_active_preset=True)
     provider = provider_registry.get(model_settings.provider, model_settings.provider_url)
+    if model_settings.provider == "llama_cpp":
+        return [ModelRead(id=item["path"], name=item["name"], source="llama_cpp") for item in model_library.list()]
     try:
         models = await provider.discover_models()
     except LMStudioOfflineError as exc:
@@ -132,12 +134,15 @@ async def test_provider_model(payload: dict[str, Any]) -> dict[str, Any]:
         )
     except (ValueError, RuntimeError, LMStudioError) as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+    text = str(result.get("text") or "").strip()
+    if not text:
+        raise HTTPException(502, "The model returned no visible text. Check model compatibility and reasoning settings.")
     return {
         "ok": True,
         "provider": provider_id,
         "model": model,
         "latency_ms": round((perf_counter() - started) * 1000, 2),
-        "text": str(result.get("text") or "")[:200],
+        "text": text[:200],
     }
 
 

@@ -42,6 +42,7 @@
         <StackPanel Orientation="Horizontal">
           <Button x:Name="RetryButton" Content="Try again" Click="OnRetry" Padding="18,9" Background="#C99A46" Foreground="#0B0B0B" BorderThickness="0" />
           <Button Content="Open logs" Click="OnOpenLogs" Padding="18,9" Margin="10,0,0,0" Background="#24262C" Foreground="#E8E5DE" BorderBrush="#3C3F47" />
+          <Button x:Name="WebViewHelpButton" Visibility="Collapsed" Content="Get WebView2" Click="OnWebViewHelp" Padding="18,9" Margin="10,0,0,0" />
         </StackPanel>
       </StackPanel>
     </Grid>

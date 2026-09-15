@@ -1,48 +1,21 @@
 # GitHub Release Process
 
-## Privacy Gate
+The owner authorized a public 1.0 release. Publish only a sanitized source tree.
+Development history may contain private legacy material; never push it into public main.
 
-The repository must remain private unless the owner explicitly changes that decision. Before every push or release, verify the publish tree excludes:
+Before publication exclude databases, stories, user prompts/settings, reference recordings, generated audio,
+models, caches, logs, environment files, private reports, credentials and user backgrounds.
+Run scripts/tests/publish_tree_privacy_test.py against the staged public tree.
+Inspect history as well as current files. Preserve the local checkpoint instead of destructively rewriting it.
 
-- `app.db`, databases, and backups;
-- stories, prompts, continuity records, and private reports;
-- generated narration and image artifacts;
-- custom/reference voices and cached voice prompts;
-- LLM/TTS model weights and local runtimes not intended as source;
-- `.env`, local endpoint keys, caches, logs, and PID files;
-- user backgrounds and screenshots containing prose;
-- machine-specific configuration and absolute private paths.
+VERSION is the semantic version. Stable release tag: v1.0.0.
+Run scripts/tests/run_release_checks.py, live writing/narration tests, desktop/mobile inspection,
+installer/portable startup and preserve-data uninstall checks, then scripts/build_native_release.py.
 
-Run the source audit and inspect `git status` before staging. Do not rewrite the only local history to remove private content; use the verified checkpoint and a sanitized publish branch/export if history is contaminated.
+Release assets: StoryDriver-Setup-x64.exe, StoryDriver-Portable-x64.zip,
+StoryDriver-ThirdParty-Sources.zip, SHA256SUMS.txt and RELEASE_NOTES.md.
+Verify hashes before upload. Binaries are unsigned.
 
-## Versioning
-
-The semantic version is stored in `VERSION`. Release-candidate tags use `vMAJOR.MINOR.PATCH-rc.N`, currently `v1.0.0-rc.1`.
-
-## Local Release Gate
-
-1. Verify database backup/integrity and clean disposable test state.
-2. Compile backend and packaged entry points.
-3. Build the frontend.
-4. Build the WPF desktop shell.
-5. Run provider, desktop, settings, continuity, narration, mobile, privacy, and package contracts.
-6. Build installer and portable ZIP.
-7. Install to a disposable directory and verify startup, hidden sidecar, upgrade, preserve-data uninstall, and explicit remove-data uninstall.
-8. Verify SHA-256 sums and package contents.
-9. Commit source/docs/tests, create the version tag, and push only the sanitized tree.
-10. Create the GitHub Release and upload installer, portable ZIP, checksums, and release notes.
-
-## CI
-
-`.github/workflows/windows-release.yml` runs on Windows. It installs project dependencies, validates the pinned llama.cpp download hash, builds frontend/backend/desktop artifacts, runs non-model contracts, and uploads installer/portable artifacts. A `v*` tag additionally creates release assets.
-
-CI never needs private databases, model weights, local voices, or local provider credentials. Large local models are selected by users after installation.
-
-## Release Assets
-
-- `StoryDriver-Setup-x64.exe`
-- `StoryDriver-Portable-x64.zip`
-- `SHA256SUMS.txt`
-- `RELEASE_NOTES.md`
-
-The artifacts are unsigned until a certificate-backed signing stage is explicitly added.
+The Windows workflow builds from a clean checkout, fails on test errors, collects artifacts and creates a tagged release
+only if it does not already exist. It does not overwrite manually verified release binaries.
+Kokoro public assets are fetched at build time with pinned checksums; no private writing model is needed in CI.

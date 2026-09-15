@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 import json
 import os
+import socket
 from pathlib import Path
 import subprocess
 import threading
@@ -243,34 +244,59 @@ class LlamaCppProvider(OpenAICompatibleProvider):
         self.state_path = DATA_DIR / "runtime" / "llama-cpp-process.json"
         self._process: subprocess.Popen[bytes] | None = None
         self._lock = asyncio.Lock()
+        self._loaded_model: str | None = None
+        self._flags: set[str] | None = None
 
     async def health(self) -> dict[str, Any]:
+        if self._process is None or self._process.poll() is not None:
+            return {"ok": False, "provider": self.id, "runtime_available": self.executable.is_file(), "state": "unloaded"}
         result = await super().health()
         result.update({"runtime_available": self.executable.is_file(), "executable": str(self.executable)})
         return result
 
+    async def ensure_loaded(self, model: str, options: dict[str, Any] | None = None) -> None:
+        async with self._lock:
+            if self._process and self._process.poll() is None and self._loaded_model == str(Path(model).resolve()):
+                return
+            await self._load_model(model, options)
+
     async def load_model(self, model: str, options: dict[str, Any] | None = None) -> dict[str, Any]:
+        async with self._lock:
+            return await self._load_model(model, options)
+
+    async def _load_model(self, model: str, options: dict[str, Any] | None = None) -> dict[str, Any]:
         model_path = Path(model).expanduser().resolve()
         if not self.executable.is_file():
             raise RuntimeError(f"Bundled llama.cpp runtime is missing: {self.executable}")
         if not model_path.is_file() or model_path.suffix.lower() != ".gguf":
             raise ValueError("Built-in llama.cpp requires an existing local GGUF file.")
-        options = options or {}
-        async with self._lock:
+        options = {key: value for key, value in (options or {}).items() if value is not None}
+        limits = {"context_length": (2048, 131072), "gpu_layers": (-1, 999), "threads": (1, 256), "batch_size": (32, 8192), "parallel_slots": (1, 8), "startup_timeout": (5, 300)}
+        for key, (low, high) in limits.items():
+            if key in options and (isinstance(options[key], bool) or not isinstance(options[key], (int, float)) or not low <= options[key] <= high):
+                raise ValueError(f"{key} must be between {low} and {high}.")
+        try:
             if self._process and self._process.poll() is None:
-                await self.unload_model()
+                await self._unload_model()
+            with socket.socket() as probe:
+                if probe.connect_ex(("127.0.0.1", 12345)) == 0:
+                    raise RuntimeError("Port 12345 is already in use. StoryDriver will not take over another model server.")
             flags = await asyncio.to_thread(self._supported_flags)
             command = [str(self.executable), "-m", str(model_path), "--host", "127.0.0.1", "--port", "12345"]
-            self._append_option(command, flags, "-c", options.get("context_length"))
-            self._append_option(command, flags, "-ngl", options.get("gpu_layers"))
+            self._append_option(command, flags, "-c", options.get("context_length", 16384))
+            self._append_option(command, flags, "-ngl", options.get("gpu_layers", "auto"))
             self._append_option(command, flags, "-t", options.get("threads"))
             self._append_option(command, flags, "-b", options.get("batch_size"))
-            self._append_option(command, flags, "-np", options.get("parallel_slots"))
-            if options.get("flash_attention") is True and "--flash-attn" in flags:
-                command.extend(["--flash-attn", "on"])
+            self._append_option(command, flags, "-np", options.get("parallel_slots", 1))
+            if isinstance(options.get("flash_attention"), bool) and "--flash-attn" in flags:
+                command.extend(["--flash-attn", "on" if options["flash_attention"] else "off"])
             if "--no-webui" in flags:
                 command.append("--no-webui")
+            if "--reasoning" in flags:
+                command.extend(["--reasoning", "off"])
             self.log_path.parent.mkdir(parents=True, exist_ok=True)
+            if self.log_path.exists() and self.log_path.stat().st_size > 2_000_000:
+                os.replace(self.log_path, self.log_path.with_suffix(".previous.log"))
             log = self.log_path.open("ab", buffering=0)
             creationflags, startupinfo = hidden_process_flags()
             self._process = subprocess.Popen(
@@ -288,17 +314,30 @@ class LlamaCppProvider(OpenAICompatibleProvider):
                 json.dumps({"pid": self._process.pid, "model": str(model_path), "started_at": utc_now()}),
                 encoding="utf-8",
             )
-        deadline = time.monotonic() + float(options.get("startup_timeout", 120))
-        while time.monotonic() < deadline:
-            status = await super().health()
-            if status.get("ok"):
-                return {"ok": True, "provider": self.id, "pid": self._process.pid, "model": str(model_path)}
-            if self._process.poll() is not None:
-                raise RuntimeError(f"llama.cpp exited with code {self._process.returncode}; see {self.log_path}")
-            await asyncio.sleep(0.5)
-        raise TimeoutError(f"llama.cpp did not become healthy; see {self.log_path}")
+            deadline = time.monotonic() + float(options.get("startup_timeout", 120))
+            async with httpx.AsyncClient(timeout=1.0, trust_env=False) as client:
+                while time.monotonic() < deadline:
+                    if self._process.poll() is not None:
+                        raise RuntimeError(f"llama.cpp exited with code {self._process.returncode}; see {self.log_path}")
+                    try:
+                        response = await client.get("http://127.0.0.1:12345/health")
+                        if response.status_code == 200 and response.json().get("status") == "ok":
+                            self._loaded_model = str(model_path)
+                            return {"ok": True, "provider": self.id, "pid": self._process.pid, "model": str(model_path)}
+                    except (httpx.HTTPError, ValueError):
+                        pass
+                    await asyncio.sleep(0.5)
+            raise TimeoutError(f"llama.cpp did not become healthy; see {self.log_path}")
+        except BaseException:
+            await self._unload_model()
+            raise
 
     async def unload_model(self, model: str | None = None) -> dict[str, Any]:
+        async with self._lock:
+            return await self._unload_model()
+
+    async def _unload_model(self) -> dict[str, Any]:
+        self._loaded_model = None
         process = self._process
         if process is None or process.poll() is not None:
             self._process = None
@@ -351,6 +390,8 @@ class LlamaCppProvider(OpenAICompatibleProvider):
         }
 
     def _supported_flags(self) -> set[str]:
+        if self._flags is not None:
+            return self._flags
         if not self.executable.is_file():
             return set()
         creationflags, startupinfo = hidden_process_flags()
@@ -367,8 +408,9 @@ class LlamaCppProvider(OpenAICompatibleProvider):
         except (OSError, subprocess.SubprocessError):
             return set()
         text = (result.stdout + result.stderr).decode("utf-8", errors="ignore")
-        candidates = {"-c", "-ngl", "-t", "-b", "-np", "--flash-attn", "--no-webui"}
-        return {flag for flag in candidates if flag in text}
+        candidates = {"-c", "-ngl", "-t", "-b", "-np", "--flash-attn", "--no-webui", "--reasoning"}
+        self._flags = {flag for flag in candidates if flag in text}
+        return self._flags
 
     @staticmethod
     def _append_option(command: list[str], flags: set[str], flag: str, value: Any) -> None:
@@ -382,8 +424,6 @@ class ProviderRegistry:
 
     def get(self, provider_id: str, endpoint: str | None = None) -> ModelProvider:
         if provider_id == "llama_cpp":
-            if endpoint and endpoint.rstrip("/") != self.llama.endpoint:
-                self.llama.endpoint = validate_local_service_url(endpoint, "Built-in llama.cpp URL").rstrip("/")
             return self.llama
         if provider_id == "openai_compatible":
             return OpenAICompatibleProvider(endpoint or "http://127.0.0.1:1234/v1")

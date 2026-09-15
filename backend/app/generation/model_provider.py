@@ -1,3 +1,5 @@
+import asyncio
+from contextlib import aclosing
 import json
 from typing import Any, AsyncIterator
 
@@ -217,12 +219,30 @@ class LMStudioClient:
     def __init__(self, base_url: str = LM_STUDIO_BASE_URL, provider_id: str = "lm_studio") -> None:
         self.base_url = base_url.rstrip("/")
         self.provider_id = provider_id or "lm_studio"
+        if self.provider_id == "llama_cpp":
+            self.base_url = "http://127.0.0.1:12345/v1"
         self.provider_label = {
             "llama_cpp": "Built-in llama.cpp",
             "openai_compatible": "Local OpenAI-compatible provider",
             "lm_studio": "LM Studio",
         }.get(self.provider_id, "Local model provider")
         self.native_base_url = native_base_url_from_openai_base(self.base_url)
+
+    async def _ensure_local_model(self, model: str) -> None:
+        if self.provider_id != "llama_cpp":
+            return
+        from app.generation.provider_runtime import provider_registry
+        from app.settings.store import load_model_settings
+
+        selected = load_model_settings(resolve_active_preset=True)
+        options = {
+            key: getattr(selected, f"llama_{key}", None)
+            for key in ("context_length", "gpu_layers", "threads", "batch_size", "parallel_slots", "flash_attention")
+        }
+        try:
+            await provider_registry.llama.ensure_loaded(model, options)
+        except (ValueError, RuntimeError, OSError, TimeoutError) as error:
+            raise LMStudioOfflineError(str(error)) from error
 
     async def list_models(self) -> list[dict[str, Any]]:
         try:
@@ -276,6 +296,26 @@ class LMStudioClient:
         timeout: float = 120.0,
         allow_finalization_recovery: bool = True,
     ) -> dict[str, Any]:
+        await self._ensure_local_model(model)
+        if self.provider_id == "llama_cpp":
+            # Streaming transport lets the owned server observe a planner timeout immediately.
+            result = {}
+            try:
+                async with asyncio.timeout(timeout):
+                    async with aclosing(self.stream_scene_events(
+                        model=model, system_prompt=system_prompt, user_prompt=user_prompt,
+                        parameters=parameters, timeout=timeout,
+                    )) as events:
+                        async for event in events:
+                            if event.get("type") == "final_result":
+                                result = event
+            except TimeoutError as error:
+                raise LMStudioError("The local generation task reached its time limit.") from error
+            if not str(result.get("text") or "").strip():
+                raise LMStudioError(_empty_generation_message(result.get("classification", "empty_output")))
+            return {**result, "backend": "openai_compatible", "requested_backend": "openai_compatible",
+                    "fallback_used": False, "warnings": [], "usage": result.get("stats", {}),
+                    "empty_classification": result.get("classification", "ok"), "finalization_recovery": None}
         body = openai_body(
             model=model,
             system_prompt=system_prompt,
@@ -394,6 +434,7 @@ class LMStudioClient:
         parameters: dict[str, Any],
         timeout: float = 120.0,
     ) -> AsyncIterator[dict[str, str]]:
+        await self._ensure_local_model(model)
         body = openai_body(
             model=model,
             system_prompt=system_prompt,

@@ -272,6 +272,8 @@ def director_named_characters(director_note: str) -> list[str]:
         "Women",
         "Write",
         "Both",
+        "Only", "Stop", "Nobody", "Distinct", "Preserve", "Generate", "Medieval",
+        "Tactical", "Tomorrow", "Tonight", "It", "He", "She", "We", "You",
     }
     names: list[str] = []
     note = director_note or ""
@@ -284,7 +286,7 @@ def director_named_characters(director_note: str) -> list[str]:
         names.extend([between_match.group(1), between_match.group(2)])
     for match in re.finditer(r"\b[A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})?\b", note):
         name = match.group(0).strip()
-        name = re.sub(r"^(?:Adult|Young|Older|Younger|Main|Major|Primary)\s+", "", name).strip()
+        name = re.sub(r"^(?:Adult|Young|Older|Younger|Main|Major|Primary|Captain|Doctor|Professor|King|Queen|Lady|Lord)\s+", "", name).strip()
         first = name.split()[0]
         if first in exclusions:
             continue
@@ -316,7 +318,8 @@ def director_named_characters(director_note: str) -> list[str]:
             and group_match is not None
             and relative_start > group_match.start()
         )
-        if not (introduced or adult_group_context or has_appositive or has_character_action):
+        cast_list_context = bool(re.search(r"\b(?:scene|cast|characters?)\s*:", sentence[:relative_start], re.I))
+        if not (introduced or adult_group_context or cast_list_context or has_appositive or has_character_action):
             continue
         existing_index = next(
             (index for index, existing in enumerate(names) if existing.split()[0].casefold() == first.casefold()),

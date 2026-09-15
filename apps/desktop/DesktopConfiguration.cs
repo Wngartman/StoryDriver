@@ -9,7 +9,7 @@ internal sealed class DesktopConfiguration
     public string DataRoot { get; private init; } = "";
     public string BackendUrl { get; private init; } = "http://127.0.0.1:8001";
     public int BackendPort { get; private init; } = 8001;
-    public bool LanEnabled { get; private init; } = true;
+    public bool LanEnabled { get; private init; }
     public bool MinimizeToTray { get; private init; }
     public bool Portable { get; private init; }
     public string BackendExecutable { get; private init; } = "";
@@ -40,13 +40,18 @@ internal sealed class DesktopConfiguration
         Directory.CreateDirectory(Path.Combine(dataRoot, "temp"));
 
         var port = IntValue(fileConfig, "backendPort", 8001);
+        if (port is < 1024 or > 65535)
+            throw new InvalidOperationException("backendPort must be between 1024 and 65535 in storydriver.config.json.");
+        var preferences = ReadJson(Path.Combine(dataRoot, "config", "desktop.json"));
+        var lanEnabled = BoolValue(preferences, "lanEnabled", BoolValue(fileConfig, "lanEnabled", false));
+        var minimizeToTray = BoolValue(preferences, "minimizeToTray", BoolValue(fileConfig, "minimizeToTray", false));
         var backendUrl = $"http://127.0.0.1:{port}";
         var devPython = Path.Combine(appRoot, "backend", ".venv", "Scripts", "python.exe");
         var backendExecutable = packaged ? packagedBackend : devPython;
         var backendWorkingDirectory = packaged ? Path.GetDirectoryName(packagedBackend)! : Path.Combine(appRoot, "backend");
         IReadOnlyList<string> backendArguments = packaged
             ? []
-            : ["-m", "uvicorn", "app.main:app", "--host", BoolValue(fileConfig, "lanEnabled", false) ? "0.0.0.0" : "127.0.0.1", "--port", port.ToString()];
+            : ["-m", "uvicorn", "app.main:app", "--host", lanEnabled ? "0.0.0.0" : "127.0.0.1", "--port", port.ToString()];
 
         var environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -60,7 +65,8 @@ internal sealed class DesktopConfiguration
                 : Path.Combine(appRoot, "frontend", "dist"),
             ["STORYDRIVER_DESKTOP_MODE"] = "true",
             ["STORYDRIVER_AUTO_START_KOKORO"] = "true",
-            ["STORYDRIVER_LAN_ENABLED"] = BoolValue(fileConfig, "lanEnabled", false) ? "true" : "false",
+            ["STORYDRIVER_LAN_ENABLED"] = lanEnabled ? "true" : "false",
+            ["STORYDRIVER_MINIMIZE_TO_TRAY"] = minimizeToTray ? "true" : "false",
             ["STORYDRIVER_BACKEND_PORT"] = port.ToString(),
             ["OPEN_BROWSER_AFTER_START"] = "false",
             ["OPEN_BROWSER_ALWAYS"] = "false",
@@ -77,6 +83,7 @@ internal sealed class DesktopConfiguration
                  })
         {
             var value = System.Environment.GetEnvironmentVariable(key)
+                ?? StringValue(preferences, key)
                 ?? StringValue(fileConfig, key)
                 ?? legacyEnv.GetValueOrDefault(key);
             if (!string.IsNullOrWhiteSpace(value))
@@ -91,8 +98,8 @@ internal sealed class DesktopConfiguration
             DataRoot = dataRoot,
             BackendUrl = backendUrl,
             BackendPort = port,
-            LanEnabled = BoolValue(fileConfig, "lanEnabled", false),
-            MinimizeToTray = BoolValue(fileConfig, "minimizeToTray", false),
+            LanEnabled = lanEnabled,
+            MinimizeToTray = minimizeToTray,
             Portable = portable,
             BackendExecutable = backendExecutable,
             BackendWorkingDirectory = backendWorkingDirectory,
@@ -109,8 +116,7 @@ internal sealed class DesktopConfiguration
             return sourceData;
         }
 
-        var driveRoot = Path.GetPathRoot(appRoot) ?? "D:\\";
-        return Path.Combine(driveRoot, "StoryDriverData");
+        return Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "StoryDriver");
     }
 
     private static string? FindSourceRoot(string start)
@@ -138,9 +144,9 @@ internal sealed class DesktopConfiguration
             using var document = JsonDocument.Parse(File.ReadAllText(path));
             return document.RootElement.Clone();
         }
-        catch (JsonException)
+        catch (JsonException error)
         {
-            return default;
+            throw new InvalidOperationException($"Invalid configuration at {path}: {error.Message}", error);
         }
     }
 
@@ -179,7 +185,7 @@ internal sealed class DesktopConfiguration
 
     private static int IntValue(JsonElement root, string name, int fallback)
     {
-        return root.ValueKind == JsonValueKind.Object && root.TryGetProperty(name, out var value) && value.TryGetInt32(out var parsed)
+        return root.ValueKind == JsonValueKind.Object && root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var parsed)
             ? parsed
             : fallback;
     }

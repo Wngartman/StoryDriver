@@ -1,4 +1,6 @@
 import logging
+import os
+import re
 from pathlib import Path
 import sys
 
@@ -6,9 +8,9 @@ from app.utils.openssl_dlls import add_openssl_dll_directory
 
 add_openssl_dll_directory()
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import APP_NAME, BASE_DIR, DATA_DIR, settings as app_settings
@@ -21,6 +23,9 @@ from app.services.service_supervisor import service_supervisor
 
 app = FastAPI(title=APP_NAME)
 logging.basicConfig(level=logging.INFO)
+if os.getenv("STORYDRIVER_DEBUG_LOGS", "false").lower() != "true":
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 LOCAL_DEV_ORIGIN_REGEX = (
     r"^https?://("
@@ -39,6 +44,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def local_request_guard(request: Request, call_next):
+    origin = request.headers.get("origin", "")
+    if request.method not in {"GET", "HEAD", "OPTIONS"} and origin and not re.fullmatch(LOCAL_DEV_ORIGIN_REGEX, origin):
+        return JSONResponse({"detail": "External website requests are not permitted."}, status_code=403)
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    return response
 
 
 def resolve_frontend_dist() -> Path | None:
@@ -66,8 +83,10 @@ def startup() -> None:
 
 
 @app.on_event("shutdown")
-def shutdown() -> None:
+async def shutdown() -> None:
     service_supervisor.shutdown()
+    from app.generation.provider_runtime import provider_registry
+    await provider_registry.llama.unload_model()
 
 
 @app.get("/", tags=["health"])
@@ -115,10 +134,10 @@ if FRONTEND_DIST and (FRONTEND_DIST / "assets").is_dir():
 @app.get("/{frontend_path:path}", include_in_schema=False)
 def get_frontend_route(frontend_path: str):
     if not FRONTEND_DIST:
-        return {"detail": "StoryDriver frontend build is not installed."}
+        raise HTTPException(404, "StoryDriver frontend build is not installed.")
     requested = (FRONTEND_DIST / frontend_path).resolve()
     if requested != FRONTEND_DIST and FRONTEND_DIST not in requested.parents:
-        return FileResponse(FRONTEND_DIST / "index.html")
+        raise HTTPException(404, "Not found")
     if requested.is_file():
         return FileResponse(requested)
-    return FileResponse(FRONTEND_DIST / "index.html")
+    raise HTTPException(404, "Not found")

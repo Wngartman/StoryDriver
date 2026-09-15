@@ -15,20 +15,14 @@ import { API_BASE_URL } from "../api.js";
 import { applyDisplaySettings } from "../services/displaySettings.js";
 
 const worldFields = ["setting", "tone", "rules", "locations", "factions", "conflicts", "history"];
-const ModelSettingsModal = lazy(() => import("./ModelSettingsModal.jsx"));
 const SettingsDrawer = lazy(() => import("./SettingsDrawer.jsx"));
 const StoryDetailsDrawer = lazy(() => import("./StoryDetailsDrawer.jsx"));
 
 export default function AppShell() {
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const [isModelOpen, setIsModelOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isStoryDetailsOpen, setIsStoryDetailsOpen] = useState(false);
-  const openModelsFromSettings = () => {
-    setIsSettingsOpen(false);
-    window.setTimeout(() => setIsModelOpen(true), 180);
-  };
   const layoutConfig = getResolvedLayoutConfig();
 
   const {
@@ -41,6 +35,7 @@ export default function AppShell() {
     isGenerating,
     lastError,
     loadInitial,
+    modelSettings,
     scenesBySession,
     sessionCharactersBySession,
     retryAutoTitleSession,
@@ -61,6 +56,7 @@ export default function AppShell() {
     isGenerating: state.isGenerating,
     lastError: state.lastError,
     loadInitial: state.loadInitial,
+    modelSettings: state.modelSettings,
     scenesBySession: state.scenesBySession,
     sessionCharactersBySession: state.sessionCharactersBySession,
     retryAutoTitleSession: state.retryAutoTitleSession,
@@ -113,8 +109,8 @@ export default function AppShell() {
         return;
       }
       const status = await fetchTTSStatus();
-      if (!cancelled && !status?.kokoro?.reachable) {
-        timer = window.setTimeout(pollUntilReady, 2000);
+      if (!cancelled) {
+        timer = window.setTimeout(pollUntilReady, status?.startup?.status === "starting" ? 2000 : 30000);
       }
     };
     timer = window.setTimeout(pollUntilReady, 2000);
@@ -217,7 +213,7 @@ export default function AppShell() {
             ttsStatus={ttsStatus}
             onDeleteSession={setDeleteTarget}
             onMenu={() => setIsSidebarOpen(true)}
-            onModelSettings={() => setIsModelOpen(true)}
+            onModelSettings={() => setIsSettingsOpen(true)}
             onRetryAutoTitle={retryAutoTitleSession}
             onRenameSession={updateSessionTitle}
             onSettings={() => setIsSettingsOpen(true)}
@@ -240,6 +236,12 @@ export default function AppShell() {
                   </div>
                 </div>
               ) : null}
+              {modelSettings?.provider === "llama_cpp" && !modelSettings.model ? (
+                <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3 text-sm">
+                  <span className="text-muted">No writing model selected</span>
+                  <button className="sd-action-button min-h-10 rounded-md border border-line px-3 font-medium" onClick={() => setIsSettingsOpen(true)} type="button">Choose model</button>
+                </div>
+              ) : null}
               <StoryFeed activeSession={activeSession} scenes={scenes} />
               <AnimatePresence>
                 <NarrationMiniPlayer />
@@ -255,9 +257,6 @@ export default function AppShell() {
       </div>
 
       <Suspense fallback={null}>
-        <AnimatePresence>
-          {isModelOpen ? <ModelSettingsModal onClose={() => setIsModelOpen(false)} /> : null}
-        </AnimatePresence>
 
         <AnimatePresence>
           {lastError ? (
@@ -274,7 +273,7 @@ export default function AppShell() {
 
         <AnimatePresence>
           {isSettingsOpen ? (
-          <SettingsDrawer onClose={() => setIsSettingsOpen(false)} onOpenModels={openModelsFromSettings} />
+          <SettingsDrawer onClose={() => setIsSettingsOpen(false)} />
           ) : null}
         </AnimatePresence>
 

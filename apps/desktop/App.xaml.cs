@@ -28,9 +28,17 @@ public partial class App : System.Windows.Application
         ListenForActivation(_activationCancellation.Token);
 
         base.OnStartup(e);
-        var window = new MainWindow(e.Args);
-        MainWindow = window;
-        window.Show();
+        try
+        {
+            var window = new MainWindow(e.Args);
+            MainWindow = window;
+            window.Show();
+        }
+        catch (Exception error)
+        {
+            System.Windows.MessageBox.Show(error.Message, "StoryDriver could not start", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown(1);
+        }
     }
 
     private static void SignalExistingInstance()

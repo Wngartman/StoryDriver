@@ -1,23 +1,21 @@
 # Project Structure
 
-The source tree remains conservative: mature frontend/backend modules were not moved merely to match a diagram.
+- apps/desktop: WPF/WebView2 shell, file dialogs, tray and owned process supervision.
+- apps/backend: frozen backend and maintenance CLI entrypoints.
+- apps/narration: standalone CPU Kokoro worker and exact dependency lock.
+- backend/app: API, generation, state, settings, persistence and narration services.
+- frontend: React/Vite source. Vite is development-only.
+- assets/desktop and frontend/public/brand: shipped branding.
+- installer: NSIS and PyInstaller definitions.
+- runtimes: pinned manifests; downloaded binaries/models are ignored.
+- scripts: build, maintenance, diagnostics and regression tests.
+- docs: current product and developer documentation.
+- third_party/licenses: redistribution notices; third_party/sources is ignored.
+- tools: isolated build environments.
+- tts_engines/qwen3_tts/service: optional legacy adapter source, not installed by default.
+- build, release and .tools: ignored generated outputs.
 
-- `apps/desktop`: self-contained .NET 10 WPF/WebView2 shell, startup screen, tray, one-instance lock, and child supervision.
-- `apps/backend`: frozen backend and `StoryDriverCLI` entry points.
-- `assets/desktop`: native icon and neutral loading artwork.
-- `backend/app`: FastAPI application, generation, providers, memory, TTS, settings, repositories, diagnostics, routes, and retained compatibility services.
-- `backend/data`: current private mutable data root; ignored by Git except safe placeholders.
-- `frontend`: React/Vite source and project-local dependencies; Vite is development-only.
-- `installer`: NSIS source.
-- `runtimes/llama.cpp`: local bundled runtime location; downloaded binaries are ignored and verified by manifest/hash.
-- `scripts`: developer builds, maintenance, diagnostics, migrations, and tests.
-- `docs`: living product, architecture, provider, packaging, privacy, installer, and release documentation.
-- `tts_engines`: isolated D:-only local TTS engines, benchmarks, and selected synthetic samples.
-- `release`: ignored local installer/portable artifacts.
-- `tools`: ignored D:-only build environments and package tools.
-
-Installed immutable binaries currently live under `D:\StoryDriverApp`. The existing mutable data remains at `D:\StoryDriver\backend\data`; the installer can select a separate D:-based data root for clean installations. Portable mode stores data beside the extracted app.
-
-Root `start_all.bat`, `check_services.bat`, and `stop_all.bat` are removed. Users launch `StoryDriver.exe`; the tray and packaged `StoryDriverCLI.exe` provide operations. Batch wrappers under `scripts` remain developer/test helpers and are not installed product entry points.
-
-Generated databases, backups, stories, media, voices, model weights, logs, temp files, local configuration, provider secrets, TTS caches, Node dependencies, venvs, build trees, and release artifacts are ignored by Git.
+Installed files and mutable data are separate. On the development workstation they are D:\StoryDriverApp and D:\StoryDriverData.
+Other installations choose their own folders; portable data is inside the extracted application's data directory.
+Normal users launch StoryDriver.exe. The root start_all.bat is only a convenience launcher for the installed executable.
+No databases, user prompts, reference recordings, model weights, logs or caches are committed.

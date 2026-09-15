@@ -9,11 +9,11 @@ from typing import Any
 
 import httpx
 
-from app.config import QWEN_TTS_BASE_URL
+from app.config import BASE_DIR, QWEN_TTS_BASE_URL
 
 
-ROOT = Path(r"D:\StoryDriver")
-QWEN_ROOT = ROOT / "tts_engines" / "qwen3_tts"
+ROOT = BASE_DIR
+QWEN_ROOT = Path(os.getenv("STORYDRIVER_QWEN_ROOT", str(ROOT / "tts_engines" / "qwen3_tts"))).resolve()
 QWEN_PYTHON = QWEN_ROOT / "venv" / "Scripts" / "python.exe"
 QWEN_SERVICE = QWEN_ROOT / "service"
 QWEN_LOG_DIR = QWEN_ROOT / "logs"

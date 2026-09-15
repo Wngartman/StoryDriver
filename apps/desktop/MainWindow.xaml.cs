@@ -25,6 +25,7 @@ public partial class MainWindow : Window
     private bool _forceQuit;
     private bool _shutdownComplete;
     private bool _starting;
+    private bool _webViewConfigured;
     private readonly Stopwatch _visibleStartup = Stopwatch.StartNew();
 
     public MainWindow(string[] args)
@@ -64,6 +65,7 @@ public partial class MainWindow : Window
             return;
         }
         _starting = true;
+        WebViewHelpButton.Visibility = Visibility.Collapsed;
         ErrorView.Visibility = Visibility.Collapsed;
         LoadingView.Visibility = Visibility.Visible;
         StoryWebView.Visibility = Visibility.Hidden;
@@ -98,6 +100,11 @@ public partial class MainWindow : Window
             ConfigureWebView();
             StoryWebView.Source = new Uri(_configuration.BackendUrl);
         }
+        catch (WebView2RuntimeNotFoundException)
+        {
+            WebViewHelpButton.Visibility = Visibility.Visible;
+            ShowStartupError("Microsoft Edge WebView2 Runtime is missing. Install the free Evergreen Runtime from Microsoft, then choose Try again. Your writing stays local.");
+        }
         catch (Exception error)
         {
             ShowStartupError(error.Message);
@@ -111,6 +118,8 @@ public partial class MainWindow : Window
     private void ConfigureWebView()
     {
         var core = StoryWebView.CoreWebView2;
+        if (_webViewConfigured) return;
+        _webViewConfigured = true;
         core.Settings.AreDefaultScriptDialogsEnabled = true;
         core.Settings.IsStatusBarEnabled = false;
         core.Settings.AreDevToolsEnabled = false;
@@ -119,6 +128,13 @@ public partial class MainWindow : Window
         core.ProcessFailed += (_, args) => Dispatcher.Invoke(() =>
             ShowStartupError($"The embedded browser process stopped ({args.ProcessFailedKind}). Your stories remain saved."));
         core.WebMessageReceived += OnWebMessageReceived;
+        core.NewWindowRequested += (_, args) => args.Handled = true;
+        core.NavigationStarting += (_, args) =>
+        {
+            if (!Uri.TryCreate(args.Uri, UriKind.Absolute, out var target) ||
+                target.GetLeftPart(UriPartial.Authority) != _configuration.BackendUrl)
+                args.Cancel = true;
+        };
         core.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All);
         core.WebResourceRequested += (_, args) =>
         {
@@ -153,12 +169,15 @@ public partial class MainWindow : Window
 
     private async void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
+        if (!Uri.TryCreate(e.Source, UriKind.Absolute, out var source) ||
+            source.GetLeftPart(UriPartial.Authority) != _configuration.BackendUrl) return;
+        string? requestId = null;
         try
         {
             using var document = JsonDocument.Parse(e.WebMessageAsJson);
             var root = document.RootElement;
             var type = root.GetProperty("type").GetString();
-            var requestId = root.TryGetProperty("requestId", out var request) ? request.GetString() : null;
+            requestId = root.TryGetProperty("requestId", out var request) ? request.GetString() : null;
             string? selected = null;
             if (type == "select-gguf")
             {
@@ -186,7 +205,7 @@ public partial class MainWindow : Window
         }
         catch (Exception error)
         {
-            var response = JsonSerializer.Serialize(new { type = "native-selection-error", error = error.Message });
+            var response = JsonSerializer.Serialize(new { type = "native-selection-error", requestId, error = error.Message });
             StoryWebView.CoreWebView2.PostWebMessageAsJson(response);
         }
         await Task.CompletedTask;
@@ -202,7 +221,17 @@ public partial class MainWindow : Window
                 return false;
             }
             var body = await response.Content.ReadAsStringAsync();
-            return body.Contains("StoryDriver", StringComparison.OrdinalIgnoreCase);
+            using var document = JsonDocument.Parse(body);
+            if (!document.RootElement.TryGetProperty("app", out var app) || app.GetString() != "StoryDriver") return false;
+            using var info = await _httpClient.GetAsync($"{_configuration.BackendUrl}/system/info");
+            if (!info.IsSuccessStatusCode) return false;
+            using var identity = JsonDocument.Parse(await info.Content.ReadAsStringAsync());
+            return identity.RootElement.TryGetProperty("data_root", out var dataRoot) &&
+                string.Equals(Path.GetFullPath(dataRoot.GetString()!), _configuration.DataRoot, StringComparison.OrdinalIgnoreCase);
+        }
+        catch (JsonException)
+        {
+            return false;
         }
         catch (HttpRequestException)
         {
@@ -221,6 +250,10 @@ public partial class MainWindow : Window
             using var client = new TcpClient();
             var task = client.ConnectAsync(IPAddress.Loopback, port);
             return task.Wait(TimeSpan.FromMilliseconds(350)) && client.Connected;
+        }
+        catch (AggregateException)
+        {
+            return false;
         }
         catch (SocketException)
         {
@@ -258,6 +291,11 @@ public partial class MainWindow : Window
     private async void OnRetry(object sender, RoutedEventArgs e)
     {
         await StartApplicationAsync();
+    }
+
+    private void OnWebViewHelp(object sender, RoutedEventArgs e)
+    {
+        Process.Start(new ProcessStartInfo("https://developer.microsoft.com/microsoft-edge/webview2/") { UseShellExecute = true });
     }
 
     private void OnOpenLogs(object sender, RoutedEventArgs e)
@@ -334,6 +372,13 @@ public partial class MainWindow : Window
 
     private void CopyLanAddress()
     {
+        if (!_configuration.LanEnabled)
+        {
+            _trayIcon.BalloonTipTitle = "LAN access is off";
+            _trayIcon.BalloonTipText = "Enable LAN access in Settings > App, then restart StoryDriver.";
+            _trayIcon.ShowBalloonTip(2200);
+            return;
+        }
         var address = GetPrivateIpv4();
         var value = address is null ? _configuration.BackendUrl : $"http://{address}:{_configuration.BackendPort}";
         System.Windows.Clipboard.SetText(value);
