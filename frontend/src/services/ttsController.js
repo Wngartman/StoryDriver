@@ -4,6 +4,7 @@ import { premiumBatchStart, premiumBufferCoversNextBatch, premiumNarrationUnits 
 import { contiguousGeneratedRange, resolvePerformanceSeek } from "./ttsSeekMath.js";
 import { ttsBreathScheduler } from "./ttsBreathScheduler.js";
 import { breathScheduleForTimeline } from "./ttsBreathPolicy.js";
+import { localBrowserVoices, selectLocalBrowserVoice } from "./ttsLocalVoices.js";
 
 const SPEED_OPTIONS = [0.75, 1, 1.1, 1.25, 1.5, 1.75];
 
@@ -829,12 +830,7 @@ function stopAudio() {
 }
 
 function selectedBrowserVoice(voiceName) {
-  if (!voiceName || !window.speechSynthesis?.getVoices) return null;
-  return (
-    window.speechSynthesis
-      .getVoices()
-      .find((voice) => voice.name === voiceName || voice.voiceURI === voiceName) || null
-  );
+  return selectLocalBrowserVoice(window.speechSynthesis, voiceName);
 }
 
 function speakBrowserChunk(runId) {
@@ -843,10 +839,16 @@ function speakBrowserChunk(runId) {
   stopBrowserSpeech();
   suppressBrowserError = false;
 
+  const resolvedVoice = selectedBrowserVoice(browserVoice);
+  if (!resolvedVoice) {
+    clearTimer();
+    onError("No local browser voice is available. Use Kokoro or install an offline system voice.");
+    onUpdate({ isNarrating: false, isPaused: true, statusMessage: "Local voice unavailable" });
+    return;
+  }
   utterance = new SpeechSynthesisUtterance(browserChunks[browserChunkIndex]);
   utterance.rate = browserSpeed;
-  const resolvedVoice = selectedBrowserVoice(browserVoice);
-  if (resolvedVoice) utterance.voice = resolvedVoice;
+  utterance.voice = resolvedVoice;
 
   utterance.onstart = () => {
     if (runId !== playbackId) return;
@@ -897,6 +899,9 @@ function speakBrowserChunk(runId) {
 function playBrowser({ text, speed, voice }) {
   if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
     throw new Error("Browser text-to-speech is not available in this browser.");
+  }
+  if (!selectedBrowserVoice(voice)) {
+    throw new Error("No local browser voice is available. Use Kokoro or install an offline system voice.");
   }
 
   stopBrowserSpeech();
@@ -2183,7 +2188,6 @@ export const ttsController = {
   },
 
   browserVoices() {
-    if (!window.speechSynthesis?.getVoices) return [];
-    return window.speechSynthesis.getVoices();
+    return localBrowserVoices(window.speechSynthesis);
   },
 };

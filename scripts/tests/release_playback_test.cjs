@@ -3,8 +3,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '../..');
 const out = path.join(root, '.tools/release-test-data');
+const continuous = process.argv.includes('--continuous');
 (async () => {
-  const context = await chromium.launchPersistentContext(path.join(root, '.tools/playback-browser'), {
+  const context = await chromium.launchPersistentContext(path.join(root, continuous ? '.tools/continuous-browser-v2' : '.tools/playback-browser'), {
     executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe',
     headless: true, viewport: { width: 1440, height: 1000 },
     args: ['--autoplay-policy=no-user-gesture-required', '--disable-background-networking'],
@@ -34,6 +35,7 @@ const out = path.join(root, '.tools/release-test-data');
   });
   try {
     await page.goto('http://127.0.0.1:8001', { waitUntil: 'networkidle' });
+    if (continuous) await page.evaluate(() => Object.keys(localStorage).filter(key => key.startsWith('storydriver_tts_cursor')).forEach(key => localStorage.removeItem(key)));
     await page.getByText('RELEASE TEST - narration', { exact: true }).first().click();
     const started = Date.now();
     await page.getByRole('button', { name: 'Narrate', exact: true }).first().click();
@@ -56,15 +58,18 @@ const out = path.join(root, '.tools/release-test-data');
     await page.setViewportSize({ width: 430, height: 932 });
     await page.screenshot({ path: path.join(out, 'mobile-player.png') });
     if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)) throw Error('Player overflow');
-    // Exercise real decode/end/preload transitions without waiting through repeated synthetic paragraphs.
-    for (let index = 0; index < 24; index++) {
+    if (continuous) {
+      await page.waitForFunction(count => window.__audioEvents.filter(event => event.type === 'ended').length >= count
+        && window.__audios.every(audio => audio.paused)
+        && !Object.keys(localStorage).some(key => key.startsWith('storydriver_tts_cursor')), cursor.chunkCount, { timeout: 900000 });
+    } else for (let index = 0; index < 24; index++) {
       await page.waitForFunction(() => window.__audios.some(a => !a.paused && Number.isFinite(a.duration) && a.duration > 1), { timeout: 60000 });
       await page.waitForTimeout(1600);
       const before = await page.evaluate(() => window.__audioEvents.filter(e => e.type === 'ended').length);
       await page.evaluate(() => { const a = window.__audios.find(a => !a.paused && Number.isFinite(a.duration) && a.duration > 1); if (a) a.currentTime = Math.max(0, a.duration - 0.15); });
       await page.waitForFunction(count => window.__audioEvents.filter(e => e.type === 'ended').length > count, before, { timeout: 60000 });
     }
-    await page.getByRole('button', { name: 'Pause narration', exact: true }).click();
+    if (!continuous) await page.getByRole('button', { name: 'Pause narration', exact: true }).click();
     const events = await page.evaluate(() => window.__audioEvents);
     const gaps = [];
     for (let i = 0; i < events.length; i++) if (events[i].type === 'ended') {
@@ -72,7 +77,7 @@ const out = path.join(root, '.tools/release-test-data');
       if (next) gaps.push((next.at - events[i].at) / 1000);
     }
     if (errors.length || events.some(e => e.type === 'error')) throw Error(JSON.stringify({errors, audioErrors: events.filter(e => e.type === 'error')}));
-    fs.writeFileSync(path.join(out, 'playback-evidence.json'), JSON.stringify({ firstAudioSeconds, pause: true, reloadResumeSeconds: resumed, cursor, transitions: gaps.length, gaps, chunks, errors, acceleratedBoundaryTest: true }, null, 2));
+    fs.writeFileSync(path.join(out, continuous ? 'continuous-playback-evidence.json' : 'playback-evidence.json'), JSON.stringify({ firstAudioSeconds, pause: true, reloadResumeSeconds: resumed, cursor, transitions: gaps.length, gaps, chunks, errors, acceleratedBoundaryTest: !continuous, wallSeconds: (Date.now()-started)/1000 }, null, 2));
     console.log(JSON.stringify({ firstAudioSeconds, reloadResumeSeconds: resumed, transitions: gaps.length, maxGap: Math.max(...gaps), cachedResponses: chunks.filter(c => c.cached || c.cache_hit).length }));
   } finally { await context.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

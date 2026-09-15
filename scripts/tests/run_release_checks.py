@@ -24,7 +24,7 @@ failed = []
 for test in tests:
     if subprocess.run([sys.executable, test], cwd=ROOT).returncode:
         failed.append(test)
-for test in ['scripts/tests/qwen_premium_plan_test.mjs', 'scripts/tests/tts_buffered_seek_test.mjs', 'scripts/tts_follow_sync_static_test.mjs']:
+for test in ['scripts/tests/qwen_premium_plan_test.mjs', 'scripts/tests/tts_buffered_seek_test.mjs', 'scripts/tests/tts_local_voice_test.mjs', 'scripts/tts_follow_sync_static_test.mjs']:
     if subprocess.run(['node', test], cwd=ROOT).returncode:
         failed.append(test)
 if failed:
