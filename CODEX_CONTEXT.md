@@ -2,6 +2,10 @@
 
 Last updated: 2026-09-14. Canonical development root: D:\StoryDriver.
 
+1.0 is published at https://github.com/Wngartman/StoryDriver/releases/tag/v1.0.0 (sanitized source commit c27dbad).
+The final installer was tested for fresh installation, upgrade configuration preservation and data-preserving uninstall.
+Use the Windows GetFullPathNameW API in the installer: NSIS GetFullPathName can empty a nonexistent destination. Never remove the fail-closed path/payload checks.
+
 ## Product Contract
 
 StoryDriver is a local directed-fiction studio, not a chatbot. Director note -> scene -> saved version -> narration.
@@ -36,6 +40,7 @@ Writing-first sidebar, central prose, compact composer and mini-player.
 One Settings drawer: Writing, Narration, Appearance, App. Writing has an Advanced disclosure.
 Settings flush on close; failed saves remain visible. Model/task-note drafts must not reset during typing.
 Narration shows starting/ready/offline accurately. No fake connection or model-load success.
+Browser narration permits only explicitly local voices and fails closed when none are available.
 All themes retain responsive geometry and readable touch inputs.
 
 ## Safety And Release

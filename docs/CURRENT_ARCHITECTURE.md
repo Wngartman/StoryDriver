@@ -30,6 +30,7 @@ backend/app/tts owns provider abstraction, normalization, pronunciation aliases,
 frontend narration services own progressive prebuffering, playback, generated-only seeking and persisted cursor.
 The bundled stock Aoede voice requires no reference recording. Optional legacy adapters do not download or enable themselves.
 The standalone worker is GPL-3.0-or-later; core application is MIT. It communicates through the local speech API.
+Browser fallback explicitly selects an offline system voice; it never silently chooses an online/default browser voice.
 
 ## UI And Security
 
@@ -40,3 +41,10 @@ Native bridge messages are restricted to the application origin.
 Unknown API routes return 404, not frontend HTML. Cross-origin mutation guard blocks public website origins.
 Loopback is the default binding. Opt-in private LAN has no authentication; it is not an internet service.
 Images are disabled. Runtime data and build outputs never belong in the public source tree.
+
+## Release Verification
+
+Version 1.0.0 has installer and portable releases. Actual Windows installation, upgrade configuration preservation and data-preserving uninstall were exercised with disposable fixtures.
+Destination normalization uses checked Windows GetFullPathNameW so a directory that does not exist yet cannot become an empty installation path.
+The release checks include live writing/version operations, CPU narration, 60-chunk browser playback, reload resume, desktop/mobile geometry and SQLite backup/restore.
+Model output quality and physical-phone background playback remain separate from deterministic build/runtime acceptance.

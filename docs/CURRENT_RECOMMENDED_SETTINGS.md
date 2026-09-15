@@ -22,7 +22,7 @@ Do not change LM Studio templates, reload its model or alter external runtime co
 Kokoro, stock female Aoede, speed 0.95, natural chunking/pacing.
 CPU narration avoids consuming GPU memory needed by the writing model.
 Keep progressive buffering, local chunk cache, pronunciation aliases and saved cursor enabled.
-Browser narration is the final fallback. Experimental high-quality adapters are disabled by default.
+Browser narration is an opt-in final fallback and permits only explicitly local system voices. Experimental high-quality adapters are disabled by default.
 No reference audio is required or bundled.
 
 ## App
@@ -30,3 +30,8 @@ No reference audio is required or bundled.
 Images disabled. Loopback access by default. Enable LAN only on a trusted private network.
 Close exits by default; minimize-to-tray is optional. Restart to apply LAN/tray settings.
 Start from StoryDriver.exe, not a development server.
+
+## Measured Baseline
+
+The final local 27B packaged normal scene took 105.5 seconds, with first prose at 48.2 seconds. A longer 1,800-2,200-word request took 266.3 seconds and exceeded its word target after one repair. These are observations, not universal limits.
+Kokoro first audio was about two seconds cold in the browser. An 11-minute, 60-chunk playback check completed with a maximum measured boundary gap of 135 ms and successful reload resume.
